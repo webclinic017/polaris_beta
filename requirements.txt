@@ -54,7 +54,7 @@ MarkupSafe==2.1.1
 matplotlib==3.2.2
 matplotlib-inline==0.1.3
 mistune==0.8.4
-mplfinance==0.12.9b1
+#mplfinance==0.12.9b1
 multidict==6.0.2
 nbclient==0.6.4
 nbconvert==6.5.0
@@ -105,8 +105,8 @@ six==1.16.0
 smmap==5.0.0
 soupsieve==2.3.2.post1
 stack-data==0.2.0
-streamlit==1.10.0
-ta==0.10.1
+#streamlit==1.10.0
+#ta==0.10.1
 TA-Lib==0.4.24
 terminado==0.15.0
 threadpoolctl==3.1.0
