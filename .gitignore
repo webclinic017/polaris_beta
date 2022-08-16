@@ -15,6 +15,7 @@
 *.ipynb_checkpoints
 
 # ALLOWED FILES
+!requirements.txt
 # !datasets/df_klines_BTCUSDT_1d.pckl
 # !datasets/df_klines_ETHUSDT_1d.pckl
 # !datasets/df_klines_BNBUSDT_1d.pckl
