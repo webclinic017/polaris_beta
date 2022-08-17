@@ -277,36 +277,43 @@ class PolarisBot:
                 df['talib_doji'] = talib.CDLDOJI(df.open, df.high, df.low, df.close)
         return df
 
-    def dataframeToBinary(self,dataframe:DataFrame,filename:str):
-        orig_dir = getcwd()
-        if not orig_dir.endswith('datasets'):
-            chdir('/home/llagask/Trading/polaris39/datasets')
+    def _find_directory(target_dir):
+        def decorator_a(function): # <funcion> va a ser decorada.
+            def wrapper_func(self, *args, **kwargs): #función que ejecuta la función objetivo.
+                deep=5
+                orig_dir=getcwd()
+                while deep:
+                    if not target_dir in listdir():
+                        chdir('../')
+                        deep-=1
+                    else:
+                        dataframe = function(self, *args, **kwargs) #Dada la condición decorada.
+                        chdir(orig_dir)
+                        return dataframe
+            return wrapper_func
+        return decorator_a
+    
+    @_find_directory(target_dir='datasets')
+    def dataframeToBinary(self,dataframe:DataFrame,filename:str): 
         try: 
-            with open(filename+'.pckl', 'wb') as bin_df:
+            filepath = f"datasets/{filename}.pckl"
+            with open(filepath, 'wb') as bin_df:
                 pickle.dump(dataframe, bin_df)
-            # comeback to original directory
-            chdir(orig_dir)
-            return f'{filename} persisted as binary ok'
+            print(f'{filename} persisted as binary ok')
         except Exception as e:
             print(e)
 
-    def dataframeFromBinary(self, filename:str):
-        orig_dir = getcwd()
-        if not orig_dir.endswith('datasets'):
-            chdir('/home/llagask/Trading/polaris39/datasets')
+    @_find_directory(target_dir='datasets')
+    def dataframeFromBinary(self,filename:str):
         try:
-            filepath = f"{filename}.pckl"
+            filepath = f"datasets/{filename}.pckl"
             df_bin = open(filepath, 'rb')
             dataframe = pickle.load(df_bin)
             df_bin.close()
-            chdir(orig_dir)
-            # index as datetime
-            
             return dataframe
-        except:
-            # Podría crear una clase de EXCEPCIONES CON ESTA BASE.
-            print(f'Filename {filename} does not exists yet.', __name__)
-            return None
+        except Exception as e:
+            print(e)
+            return
 
     def checkWallet(self, market_type):
         return self.binance.dailyAccountSnapshot(type=market_type)
@@ -339,21 +346,22 @@ if __name__== '__main__':
     from polaristools.polarisbot import PolarisBot
     from os import environ
     
-    ################################################################################
     raspi = '192.168.8.106'
     db_user = 'admin'
     db_pass = environ.get('mongodbadminpass')
+    
+    polaris = PolarisBot()
+    
+    df = polaris.dataframeFromBinary(filename='df_klines_BTCUSDT_1d')
+    df.tail()
     
     database_config = {
         'db_host':raspi,
         'db_user':db_user,
         'db_pass':db_pass,
     }
-    ################################################################################
     polaris = PolarisBot(mongo_cred=database_config)
-    
     polaris = PolarisBot()
-    ################################################################################
     
     wallet_spot = polaris.checkWallet(market_type='SPOT')
     wallet_fusd = polaris.checkWallet(market_type='FUTURES')

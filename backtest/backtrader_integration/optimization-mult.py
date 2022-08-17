@@ -1,6 +1,6 @@
 from __future__ import (absolute_import, division, print_function,unicode_literals)
 from datetime import datetime
-from os import getcwd
+import os
 import pickle
 
 import backtrader as bt
@@ -104,13 +104,6 @@ def filter_results(dataframe, symbol:str, timeframe:str, by_col:str):
     
     return best_horse
 
-def persist_opt_logs(dataframe:pd.DataFrame, name:str):
-    now=datetime.now()
-    filename = f'logs/OPT-{name}-{now}.pckl'
-    with open(filename, 'wb') as bin_df:
-        pickle.dump(dataframe, bin_df)
-    print(f'{filename} persisted as binary ok')
-
 def loop_optimizations(backtest_params,symbols,timeframes,persist_results=False):
     # Store each results Dataframe here.
     symbols_df = pd.DataFrame()
@@ -158,8 +151,19 @@ def loop_optimizations(backtest_params,symbols,timeframes,persist_results=False)
 if __name__== '__main__':
     polaris = PolarisBot()
     
-    symbols    = ['BTCUSDT','BNBUSDT', 'DOGEUSDT', 'ETHUSDT']   #len 4
-    timeframes = ['240m', '120m', '60m', '30m', '15m']          #len 5
+    symbols    = [
+        'BTCUSDT',
+        # 'BNBUSDT',
+        # 'DOGEUSDT',
+        # 'ETHUSDT'
+    ]              #len 4
+    timeframes = [
+        '240m',
+        # '120m',
+        # '60m',
+        # '30m',
+        # '15m'
+    ]          #len 5
     
     hyp_params = dict(
         enter_long          = True,
@@ -183,3 +187,10 @@ if __name__== '__main__':
         timeframes,
         persist_results=True,
     )
+    
+    print('al final está en: ',os.getcwd())
+    # PERSIST RESULTS
+    now=datetime.now()
+    name='aroon strategy'
+    filename = f'logs/OPT-{name}-{now}.pckl'
+    opts_df.to_pickle(path=filename)
