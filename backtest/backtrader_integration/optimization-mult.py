@@ -103,80 +103,40 @@ def filter_results(dataframe, symbol:str, timeframe:str, by_col:str):
     best_horse = pd.concat([best5,worse3], keys=[bs, ws], axis=0)
     
     return best_horse
-    
+
 def persist_opt_logs(dataframe:pd.DataFrame, name:str):
     now=datetime.now()
     filename = f'logs/OPT-{name}-{now}.pckl'
     with open(filename, 'wb') as bin_df:
         pickle.dump(dataframe, bin_df)
     print(f'{filename} persisted as binary ok')
-    
-def retrieve_persisted_log(name:str):
-    filename = f'logs/OPT-{name}.pckl'
-    try:
-        df_bin = open(filename, 'rb')
-        dataframe = pickle.load(df_bin)
-        df_bin.close()
-        return dataframe
-    except:
-        print(f'Filename: {filename} does not exists yet.', __name__)
-        return None
 
-
-if __name__== '__main__':
-    
-    polaris = PolarisBot()
-    
-    # LOOP #20 - RUN Multiple tests
-    # def loop_optimizations(symbols:list, timeframes:list, sample:dict, parameters:dict):
-    
-    symbols    = ['BTCUSDT','BNBUSDT', 'DOGEUSDT', 'ETHUSDT']   #len 4
-    timeframes = ['240m', '120m', '60m', '30m', '15m']          #len 5
-        
+def loop_optimizations(backtest_params,symbols,timeframes,persist_results=False):
     # Store each results Dataframe here.
     symbols_df = pd.DataFrame()
     
     it_counter = 0
     total_it = int(len(symbols)*len(timeframes))
     
-    hyp_params = dict(
-        enter_long          = True,
-        enter_short         = True,
+    for symbol in symbols:
         
-        ema                 = list(range(50, 101, 10)),
-        aroon_timeperiod    = list(range(50, 101, 10)),
-        leverage_factor     = 1.0,
-    )
-    
-    backtest_params = dict(
-        # symbol = symbol,
-        # timeframe = timeframe,
-        cash = 100,
-        sizer = 25,
-        comm = 0.05,
-        sample = {'start':'2021-01-01', 'end':'2022-08-12'},
-        custom_strategy = mystrategies.AroonPlusMa,
-        parameters = hyp_params
-    )
-    
-    for symbol in symbols[:1]:
         # rolling values:init.
         backt_params = backtest_params.copy()
         
-        for timeframe in timeframes[:1]:
+        for timeframe in timeframes:
             backt_params.update(dict(symbol=symbol, timeframe=timeframe))
+            
+            # RUN BACKTEST.
             backtest = optimization(**backt_params)
             
             # Update rolling values.
             paramconst=25
-            
             ema_timeperiod                                  = backt_params['parameters'].get('ema')
             aroon_timeperiod                                = backt_params['parameters'].get('aroon_timeperiod')
             backt_params['parameters']['ema']               = [num+paramconst for num in ema_timeperiod]
             backt_params['parameters']['aroon_timeperiod']  = [num+paramconst for num in aroon_timeperiod]
             
             df = parse_analyzers(backtest)
-            
             best5_worse3 = filter_results(dataframe=df, symbol=symbol, timeframe=timeframe, by_col='pnl_net')
             
             if symbols_df.empty:
@@ -188,7 +148,38 @@ if __name__== '__main__':
             it_counter+=1
             now = datetime.now()
             print(f'Iteration #{it_counter} of {total_it}. At {now}. SYMBOL: {symbol} TIMEFRAME: {timeframe}')
+    return symbols_df
     
-    # PERSIST RESULTS
-    fname = 'arron-ema'
-    persist_opt_logs(symbols_df, fname)
+    if persist_results:
+        fname = 'arron-ema'
+        persist_opt_logs(symbols_df, fname)
+
+
+if __name__== '__main__':
+    polaris = PolarisBot()
+    
+    symbols    = ['BTCUSDT','BNBUSDT', 'DOGEUSDT', 'ETHUSDT']   #len 4
+    timeframes = ['240m', '120m', '60m', '30m', '15m']          #len 5
+    
+    hyp_params = dict(
+        enter_long          = True,
+        enter_short         = True,
+        ema                 = list(range(50, 101, 10)), #240m optimized.
+        aroon_timeperiod    = list(range(50, 101, 10)), #240m optimized.
+        leverage_factor     = 1.0,
+    )
+    backtest_params = dict(
+        cash = 100,
+        sizer = 25,
+        comm = 0.05,
+        sample = {'start':'2021-01-01', 'end':'2022-08-12'},
+        custom_strategy = mystrategies.AroonPlusMa,
+        parameters = hyp_params
+    )
+    
+    opts_df = loop_optimizations(
+        backtest_params,
+        symbols,
+        timeframes,
+        persist_results=True,
+    )
