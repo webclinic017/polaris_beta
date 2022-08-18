@@ -48,46 +48,44 @@ def parse_persist_wsKline(data:dict, dbname:str, collection:str):
     outputmsg = f'Mongodb ID: {created_id}'
     return outputmsg
 
-async def main(
-                symbol, interval,
-                db_name, collection_name,
-                persist=True,
-                ):
-    client = await AsyncClient.create(api_key,api_secret)
-    bm = BinanceSocketManager(client)
-    ks = bm.kline_socket(symbol, interval)
-    # ks = bm.kline_socket('BNBBTC', interval='1m')
-
-    async with ks as tscm:
+async def continuousklines(
+                            symbol,
+                            # db_name,
+                            # collection_name,
+                            persist=False,
+                            ):
+    client = await AsyncClient.create(api_key,api_secret) #Inizialize connection.
+    bsm = BinanceSocketManager(client) #wraper function.
+    
+    # Coroutine.
+    continuouskline_socket = bsm.kline_futures_socket(symbol)
+    async with continuouskline_socket as socket_stream:
         while True:
-            res = await tscm.recv()
-            if res['k']['x']==True:
-                try:
-                    msg = parse_persist_wsKline(
-                        data=res['k'],
-                        dbname = db_name,
-                        collection = collection_name,
-                    )
-                    print(msg)
-                except Exception as e:
-                    print(e)
-            print(res['e'], res['s'])
+            res = await socket_stream.recv()
+            if persist:
+                if res['k']['x']==True:
+                    try:
+                        msg = parse_persist_wsKline(
+                            data=res['k'],
+                            dbname = db_name,
+                            collection = collection_name,
+                        )
+                        print(msg)
+                    except Exception as e:
+                        print(e)
+            print(res['e'], res['ps'], res['k']['c'])
+    
     await client.close_connection()
+
+async def main():
+    await asyncio.gather(continuousklines(symbol='BNBUSDT'), continuousklines(symbol='DOGEUSDT'))
+
 
 if __name__== '__main__':
     
-    symbol='ETHUSDT'
-    interval='1m'
+    # symbol='ETHUSDT'
+    # interval='1m'
     database_name = 'binance_spot_margin_busd_ejemplo'
-    collection = f'ws_klines_{symbol}_{interval}'
+    # collection = f'ws_cosas_uno{symbol}_{interval}'
     
-    loop = asyncio.get_event_loop()
-    
-    loop.run_until_complete(
-        main(
-            symbol=symbol,
-            interval=interval,
-            db_name=database_name,
-            collection_name=collection,
-        )
-    )
+    asyncio.run(main())
