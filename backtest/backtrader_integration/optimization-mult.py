@@ -4,6 +4,7 @@ import os
 import pickle
 
 import backtrader as bt
+from numpy import nan as npnan
 import pandas as pd
 
 from polaristools.polarisbot import PolarisBot
@@ -57,7 +58,7 @@ def parse_analyzers(backtests):
         df_params.drop(columns=['verbose'], inplace=True)
     except:
         print('SOMETHING HAS FAILED WHILE TRYING TO RETRIEVE THE PARAMETERS FROM STRATEGY.', __main__)
-        return
+        return pd.DataFrame()
     try:
         trades = [dict(
             pnl_net         = x[0].analyzers.tradeanalyzer.get_analysis()['pnl']['net']['total'], 
@@ -82,29 +83,37 @@ def parse_analyzers(backtests):
         return df_results
     except:
         print('FAILED PARSING ANALYZERS')
-        return pd.DataFrame()
-        # return df_params
+        return df_params
 
 def filter_results(dataframe, symbol:str, timeframe:str, by_col:str):
-    if dataframe.empty:
-        print(f'FAILED TEST ON symbol: {symbol}, tf: {timeframe}')
-        return dataframe
-    labels = ['pnl_net','won','lost',
-            'trades','moneydown_max',
-            'long_won','long_lost',
-            'short_won','short_lost',
+    analyzers = [
+            'pnl_net','trades',
+            'won','lost',
+            'long_won','short_won',
+            'long_lost','short_lost',
             'longs_pnl','shorts_pnl',
-            'leverage_factor','aroon_timeperiod','ema',]
-    best5 = dataframe[labels].nlargest(5, by_col)
-    worse3 = dataframe[labels].nsmallest(3, by_col)
-    
+            'moneydown_max',
+            ]
+    params = [
+            'aroon_timeperiod',
+            'ema','leverage_factor',
+            ]
+    if not analyzers[0] in dataframe.columns:
+        print(f'FAILED TEST (invalid analyzers) ON symbol: {symbol}, tf: {timeframe}.')
+        # df_anyz_mt = pd.DataFrame([{key:npnan for key in analyzers}])
+        # dataframe = pd.concat([dataframe, df_anyz_mt], axis=1).copy()
+        return dataframe
+    elif dataframe.empty:
+        print(f'FAILED TEST (empty data, invalid params) ON symbol: {symbol}, tf: {timeframe}')
+        return dataframe
+    best5 = dataframe[analyzers+params].nlargest(5, by_col).copy()
+    worse3 = dataframe[analyzers+params].nsmallest(3, by_col).copy()
     bs = f'{symbol} {timeframe} BEST_5' 
     ws = f'{symbol} {timeframe} WORSE_3'
     best_horse = pd.concat([best5,worse3], keys=[bs, ws], axis=0)
-    
     return best_horse
 
-def loop_optimizations(backtest_params,symbols,timeframes,persist_results=False):
+def loop_optimizations(backtest_params,symbols,timeframes):
     # Store each results Dataframe here.
     symbols_df = pd.DataFrame()
     
@@ -123,7 +132,7 @@ def loop_optimizations(backtest_params,symbols,timeframes,persist_results=False)
             backtest = optimization(**backt_params)
             
             # Update rolling values.
-            paramconst=25
+            paramconst=10
             ema_timeperiod                                  = backt_params['parameters'].get('ema')
             aroon_timeperiod                                = backt_params['parameters'].get('aroon_timeperiod')
             backt_params['parameters']['ema']               = [num+paramconst for num in ema_timeperiod]
@@ -132,8 +141,8 @@ def loop_optimizations(backtest_params,symbols,timeframes,persist_results=False)
             df = parse_analyzers(backtest)
             best5_worse3 = filter_results(dataframe=df, symbol=symbol, timeframe=timeframe, by_col='pnl_net')
             
+            # First iteration check.
             if symbols_df.empty:
-                # First iteration check.
                 symbols_df = best5_worse3
             else:
                 symbols_df = pd.concat([symbols_df, best5_worse3], axis=0)
@@ -142,10 +151,6 @@ def loop_optimizations(backtest_params,symbols,timeframes,persist_results=False)
             now = datetime.now()
             print(f'Iteration #{it_counter} of {total_it}. At {now}. SYMBOL: {symbol} TIMEFRAME: {timeframe}')
     return symbols_df
-    
-    if persist_results:
-        fname = 'arron-ema'
-        persist_opt_logs(symbols_df, fname)
 
 
 if __name__== '__main__':
@@ -153,14 +158,14 @@ if __name__== '__main__':
     
     symbols    = [
         'BTCUSDT',
-        # 'BNBUSDT',
-        # 'DOGEUSDT',
-        # 'ETHUSDT'
+        'BNBUSDT',
+        'DOGEUSDT',
+        'ETHUSDT'
     ]              #len 4
     timeframes = [
         '240m',
-        # '120m',
-        # '60m',
+        '120m',
+        '60m',
         # '30m',
         # '15m'
     ]          #len 5
@@ -168,9 +173,9 @@ if __name__== '__main__':
     hyp_params = dict(
         enter_long          = True,
         enter_short         = True,
-        ema                 = list(range(50, 101, 10)), #240m optimized.
-        aroon_timeperiod    = list(range(50, 101, 10)), #240m optimized.
-        leverage_factor     = 1.0,
+        ema                 = list(range(50, 201, 10)), #240m optimized.
+        aroon_timeperiod    = list(range(50, 201, 10)), #240m optimized.
+        leverage_factor     = 2.0,
     )
     backtest_params = dict(
         cash = 100,
@@ -185,11 +190,11 @@ if __name__== '__main__':
         backtest_params,
         symbols,
         timeframes,
-        persist_results=True,
     )
     
-    print('al final está en: ',os.getcwd())
     # PERSIST RESULTS
+    if not os.getcwd().endswith('backtrader_integration'):
+        os.chdir('backtest/backtrader_integration')
     now=datetime.now()
     name='aroon strategy'
     filename = f'logs/OPT-{name}-{now}.pckl'

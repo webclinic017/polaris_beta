@@ -18,16 +18,11 @@ db_user = 'admin'
 db_pass = environ.get('mongodbadminpass')
 
 database_config = {'db_host':raspi,'db_user':db_user,'db_pass':db_pass,}
-
-mongo = MongoDatabase(**database_config)
-
+mongo = MongoDatabase(credentials=database_config)
 client = mongo.mongoClient()
 
-def parse_persist_wsKline(
-    data:dict,
-    db_name = 'binance_spot_margin_busd_ejemplo',
-    p_collection = 'ws_klines_BTCUSDT_1m',
-    ):
+
+def parse_persist_wsKline(data:dict, dbname:str, collection:str):
     opentime = datetime.utcfromtimestamp(data['t']/1000)
     closetime = datetime.utcfromtimestamp(data['T']/1000)
     kline = {
@@ -43,34 +38,56 @@ def parse_persist_wsKline(
         'taker_buy_base_asset_volume':float(data['V']),
         'taker_buy_quote_asset_volume':float(data['Q']),
     }
+    
     # INSERT NEW DATA
     created_id = mongo.insert_one_doc(
-        db_name=db_name,
-        collection=p_collection,
-        data=kline
+        data = kline,
+        db_name = dbname,
+        collection = collection,
     )
     outputmsg = f'Mongodb ID: {created_id}'
     return outputmsg
 
-async def main(persist=False):
+async def main(
+                symbol, interval,
+                db_name, collection_name,
+                persist=True,
+                ):
     client = await AsyncClient.create(api_key,api_secret)
     bm = BinanceSocketManager(client)
-    ks = bm.kline_socket('BTCUSDT', interval='1m')
+    ks = bm.kline_socket(symbol, interval)
     # ks = bm.kline_socket('BNBBTC', interval='1m')
 
     async with ks as tscm:
         while True:
             res = await tscm.recv()
             if res['k']['x']==True:
-                print('***** ***** *****Kline closed ***** ***** *****')
-                msg = parse_persist_wsKline(data=res['k'])
-                print(msg)
-                print('***** ***** *****Kline closed ***** ***** *****')
-            
-            print(res)
+                try:
+                    msg = parse_persist_wsKline(
+                        data=res['k'],
+                        dbname = db_name,
+                        collection = collection_name,
+                    )
+                    print(msg)
+                except Exception as e:
+                    print(e)
+            print(res['e'], res['s'])
     await client.close_connection()
 
-
 if __name__== '__main__':
+    
+    symbol='ETHUSDT'
+    interval='1m'
+    database_name = 'binance_spot_margin_busd_ejemplo'
+    collection = f'ws_klines_{symbol}_{interval}'
+    
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    
+    loop.run_until_complete(
+        main(
+            symbol=symbol,
+            interval=interval,
+            db_name=database_name,
+            collection_name=collection,
+        )
+    )
