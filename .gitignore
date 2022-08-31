@@ -5,7 +5,7 @@
 **__pycache__/
 .venv*/
 
-# EXCLUDED FILES
+# EXCLUDED FILE TYPES
 *.log
 *.txt
 *.pckl
@@ -15,7 +15,7 @@
 *.ipynb_checkpoints
 *.ipynb
 
-# ALLOWED FILES
+# ALLOWED FILE TYPES
 !requirements.txt
 # !datasets/df_klines_BTCUSDT_1d.pckl
 # !datasets/df_klines_ETHUSDT_1d.pckl
