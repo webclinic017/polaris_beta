@@ -17,7 +17,7 @@ from polaristools.polarisbot import PolarisBot
 def obtain_data_klines(polaris, args=None):
     current = getcwd()
     if not current.endswith('capture-data'):
-        chdir('/home/llagask/Trading/polaris39/capture-data')
+        chdir('/home/llagask/Trading/polaris_beta/capture-data')
     
     args = parse_inputs(args)
 
@@ -65,7 +65,7 @@ def obtain_data_klines(polaris, args=None):
         market_type  = market_type,
     )
     
-    chdir('/home/llagask/Trading/polaris39')
+    chdir('/home/llagask/Trading/polaris_beta')
 
 def parse_inputs(pargs=None):
     parser = argparse.ArgumentParser(

@@ -12,7 +12,7 @@ do
 done
 
 # set directory. DIFFERENT IN EVERY MACHINE, UNLESS USE DOCKER.
-cd /home/llagask/Trading/polaris39/capture-data
+cd /home/llagask/Trading/polaris_beta/capture-data
 
 # activate virtual environment. DIFFERENT IN EVERY MACHINE, UNLESS USE DOCKER, IN THIS CASE IS UNNECESSARY.
 source ../.venv-p39/bin/activate

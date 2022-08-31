@@ -22,31 +22,31 @@ mongo = MongoDatabase(credentials=database_config)
 client = mongo.mongoClient()
 
 
-def parse_persist_wsKline(data:dict, dbname:str, collection:str):
-    opentime = datetime.utcfromtimestamp(data['t']/1000)
-    closetime = datetime.utcfromtimestamp(data['T']/1000)
-    kline = {
-        'open_time':opentime,
-        'open':float(data['o']),
-        'high':float(data['h']),
-        'low':float(data['l']),
-        'close':float(data['c']),
-        'volume':float(data['v']),
-        'close_time':closetime,
-        'quote_asset_volume':float(data['q']),
-        'number_of_trades':int(data['n']),
-        'taker_buy_base_asset_volume':float(data['V']),
-        'taker_buy_quote_asset_volume':float(data['Q']),
-    }
+# def parse_persist_wsKline(data:dict, dbname:str, collection:str):
+#     opentime = datetime.utcfromtimestamp(data['t']/1000)
+#     closetime = datetime.utcfromtimestamp(data['T']/1000)
+#     kline = {
+#         'open_time':opentime,
+#         'open':float(data['o']),
+#         'high':float(data['h']),
+#         'low':float(data['l']),
+#         'close':float(data['c']),
+#         'volume':float(data['v']),
+#         'close_time':closetime,
+#         'quote_asset_volume':float(data['q']),
+#         'number_of_trades':int(data['n']),
+#         'taker_buy_base_asset_volume':float(data['V']),
+#         'taker_buy_quote_asset_volume':float(data['Q']),
+#     }
     
-    # INSERT NEW DATA
-    created_id = mongo.insert_one_doc(
-        data = kline,
-        db_name = dbname,
-        collection = collection,
-    )
-    outputmsg = f'Mongodb ID: {created_id}'
-    return outputmsg
+#     # INSERT NEW DATA
+#     created_id = mongo.insert_one_doc(
+#         data = kline,
+#         db_name = dbname,
+#         collection = collection,
+#     )
+#     outputmsg = f'Mongodb ID: {created_id}'
+#     return outputmsg
 
 async def continuousklines(
                             symbol,
@@ -77,15 +77,39 @@ async def continuousklines(
     
     await client.close_connection()
 
+# futures_user_socket
+async def usersocket(
+                            # symbol,
+                            # db_name,
+                            # collection_name,
+                            persist=False,
+                            ):
+    client = await AsyncClient.create(api_key,api_secret) #Inizialize connection.
+    bsm = BinanceSocketManager(client) #wraper function.
+    
+    # Coroutine.
+    userdata_socket = bsm.user_socket()
+    async with userdata_socket as user_stream:
+        while True:
+            res = await user_stream.recv()
+            
+            print(res)
+    
+    await client.close_connection()
+
 async def main():
-    await asyncio.gather(continuousklines(symbol='BNBUSDT'), continuousklines(symbol='DOGEUSDT'))
+    await asyncio.gather(
+        # continuousklines(symbol='BNBUSDT'),
+        # continuousklines(symbol='DOGEUSDT'),
+        usersocket()
+    )
 
 
 if __name__== '__main__':
     
     # symbol='ETHUSDT'
     # interval='1m'
-    database_name = 'binance_spot_margin_busd_ejemplo'
-    # collection = f'ws_cosas_uno{symbol}_{interval}'
+    # database_name = 'binance_spot_margin_busd_ejemplo'
+    # collection = f'ws_klines_{symbol}_{interval}'
     
     asyncio.run(main())

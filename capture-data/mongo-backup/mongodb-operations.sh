@@ -11,7 +11,7 @@
 #                                                                   #
 #####################################################################
 
-cd /home/llagask/Trading/polaris39/capture-data/mongo-backup \
+cd /home/llagask/Trading/polaris_beta/capture-data/mongo-backup \
 export databasename='binance_spot_margin_usdt'
 
 ######### BACKUP, LOCALLY ########## RASPI ##########

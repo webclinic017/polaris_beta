@@ -100,6 +100,26 @@ def latest_valid_timestamp(timeframe):
         '''
     return int((time()*1000) - timeframe)
 
+def parse_snapshotvos(snapshotVos:list):
+    if snapshotVos:
+        # SPOT
+        snapshotvos = snapshotVos.copy()
+        for idx,snapshot in enumerate(snapshotvos):
+            snapshotvos[idx]['updateTime'] = datetime.fromtimestamp(snapshot.get('updateTime')/1000)
+            snapshotvos[idx].update({'totalAssetOfBtc': snapshot['data'].get('totalAssetOfBtc')})
+            for balance in snapshot['data']['balances']:
+                if float(balance.get('free')) > 0:
+                    snapshotvos[idx].update({balance.get('asset') : [float(balance.get('free')), float(balance.get('locked'))] })
+            snapshotvos[idx].pop('data')
+        # return snapshotvos[-1]
+        df = DataFrame(snapshotvos)
+        df.set_index(df.updateTime, inplace=True)
+        df.drop(['updateTime'], axis=1, inplace=True)
+        df.sort_values(by='updateTime', ascending=False, inplace=True)
+        return df
+    else:
+        return []
+
 def check_tsieres_integrity(df):
     ''' 
         search for missing data.
@@ -118,3 +138,12 @@ if __name__== '__main__':
 	logger.warning('This is a warning : %s'%mensaje)
 	logger.error('This is an error')
 	logger.critical('This is an critical')
+	
+	var = [
+            {"asset":"ADA","free":"180.8","locked":"0"},
+            {"asset":"ADA","free":"180.8","locked":"0"},
+            {"asset":"BNB","free":"0.0002626","locked":"0"},
+            {"asset":"BNB", "free":"0.0002626", "locked":"0"},
+            {"asset":"BUSD", "free":"37.4469256", "locked":"0"},
+            {"asset":"BUSD" ,"free":"37.4469256", "locked":"0"}
+            ]

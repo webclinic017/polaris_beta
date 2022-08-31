@@ -1,18 +1,13 @@
 ''' 
-    pip install git+https://github.com/mementum/backtrader.git@0fa63ef4a35dc53cc7320813f8b15480c8f85517#egg=backtrader
-    pull request link ...seems not work yet
-    
     Actually works
     pip install matplotlib==3.2.2
     '''
 from __future__ import (absolute_import, division, print_function,unicode_literals)
 import argparse
 from datetime import datetime
-from os import environ, chdir
-# from time import time
+# from os import environ, chdir
 
-import pandas as pd
-
+# import pandas as pd
 import pdmongo as pdm
 import backtrader as bt
 
@@ -20,21 +15,22 @@ from polaristools.polarisbot import PolarisBot
 from strategies import mystrategies
 
 
-def add_data_to_cerebro(
-                        df_binary:str=None,
-                        sample:dict={},
-                        args=None,
-                        ):
+def add_data_to_cerebro(df_binary:str=None, sample:dict={}, args=None,):
     polaris = PolarisBot()
     arg = parse_inputs(args)
     
     symbol = arg.symbol.upper()
-    timeframe = arg.timeframe # e.g: '5m', '120m'
+    timeframe = arg.timeframe
     filename = f'df_klines_{symbol}_{timeframe}'
     
     df_binary   = filename
+    df = polaris.dataframeFromBinary(df_binary)
     
-    sample.update(**eval('dict(' + arg.sample + ')')) 
+    if arg.sample_date:
+        sample.update(**eval('dict(' + arg.sample_date + ')')) 
+        df = df.loc[sample.get('start'):sample.get('end')]
+    elif arg.sample_batch:
+        df = df.iloc[-arg.sample_batch:]
     
     if timeframe == '1d':
         tframe = bt.TimeFrame.Days
@@ -43,10 +39,10 @@ def add_data_to_cerebro(
         tframe = bt.TimeFrame.Minutes
         compression = int(timeframe[:-1])
     
-    df = polaris.dataframeFromBinary(df_binary)
+    # df = polaris.dataframeFromBinary(df_binary)
     
-    if sample:
-        df = df.loc[sample.get('start'):sample.get('end')]
+    # if sample:
+        # df = df.loc[sample.get('start'):sample.get('end')]
     
     datas0 = bt.feeds.PandasData(
         dataname = df,
@@ -59,7 +55,7 @@ def add_data_to_cerebro(
 def run_cerebro(data, data_dual=None, args=None,):
     # DEFAULT CONFIG
     initial_cash=200.00
-    sizer_pct=25
+    sizer_pct=20
     comm_broker=0.005
     leverage_factor=1
     margin = 0.6
@@ -72,7 +68,7 @@ def run_cerebro(data, data_dual=None, args=None,):
     
     csvname = arg.csvname # give a filename to csv.
     
-    # *** CHOOSE ACTION ***
+    # *** CHOOSE AN ACTION ***
     logic_feed = arg.logic
     indicators = arg.indicators
     priceaction = arg.priceaction
@@ -149,10 +145,12 @@ def run_cerebro(data, data_dual=None, args=None,):
     
     # *** ADD ANALYZERS.
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='tradeanalyzer')
+    cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharperatio')
+    cerebro.addanalyzer(bt.analyzers.SQN, _name='systemquality')
     
     # *** MISCELLANEOUS.
     if write_csv and not optimization:
-        path = '/home/llagask/Trading/polaris39/backtest/backtrader_integration/logs'
+        path = '/home/llagask/Trading/polaris_beta/backtest/backtrader_integration/logs'
         filename = f'{path}/{csvname}.log'
         cerebro.addwriter(bt.WriterFile,out=filename,csv=False,)
     if verbose:
@@ -178,11 +176,11 @@ def run_cerebro(data, data_dual=None, args=None,):
         cerebro.plot(**plot_args)
 
 def parse_inputs(pargs=None):
-    timestamp = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M")
+    timestamp = datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M")
     bt_log = f'btlog_{timestamp}'
     
     parser = argparse.ArgumentParser(
-        description='Arguments for the backtrader framework.'
+        description="MAIN FUNCTIONALITIES: priceaction, renko, indicators"
     )
     
     # ***DATA ARGS
@@ -197,11 +195,17 @@ def parse_inputs(pargs=None):
         default='1d',
         help='available options: 1m,3m,5m,10m,15m,30m,60m,120m,240m'
     )
-    parser.add_argument('--sample',
+    parser.add_argument('--sample_date',
         action='store',
         type=str,
         default='',
         help="e.g: start='2022-01-01',end='2022-06-01' "
+    )
+    parser.add_argument('--sample_batch',
+        action='store',
+        type=int,
+        default=500,
+        help="Enter a positive integer. e.g:500"
     )
     ############################################################
     

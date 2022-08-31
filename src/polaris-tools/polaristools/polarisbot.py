@@ -307,13 +307,11 @@ class PolarisBot:
     def dataframeFromBinary(self,filename:str):
         try:
             filepath = f"datasets/{filename}.pckl"
-            df_bin = open(filepath, 'rb')
-            dataframe = pickle.load(df_bin)
-            df_bin.close()
+            with open(filepath, 'rb') as df_bin:
+                dataframe = pickle.load(df_bin)
             return dataframe
         except Exception as e:
             print(e)
-            return
 
     def checkWallet(self, market_type):
         return self.binance.dailyAccountSnapshot(type=market_type)

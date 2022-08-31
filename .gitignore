@@ -13,6 +13,7 @@
 *.egg-info
 *.code-workspace
 *.ipynb_checkpoints
+*.ipynb
 
 # ALLOWED FILES
 !requirements.txt

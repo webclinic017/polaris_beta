@@ -18,6 +18,7 @@ import backtrader.indicators as btind
     '''
 
 class OverUnderMovAv(bt.Indicator):
+    ''' CUSTOM INDICATORS. LATER '''
     lines = ('overunder',)
     params = dict(period=20, movav=btind.MovAv.Simple)
 
@@ -181,6 +182,7 @@ class BaseStratsCustom(bt.Strategy):
                 
                 self.close()
 
+# VISUALIZATION ######################################
 
 class PriceAction(bt.Strategy):
     def __init__(self):
@@ -332,6 +334,7 @@ class Indicators(bt.Strategy):
     def next(self):
         pass
 
+# TRADING STRATEGIES ######################################
 
 class AroonPlusMa(bt.Strategy):
     params = dict(

@@ -512,7 +512,7 @@ class BinanceConnection:
         return self.__requestUserdata(baseurl,endpoint)
 
     # Userdata, get
-    def dailyAccountSnapshot(self, type, f_positions=False, limit=30, baseurl=baseurl_spot_margin, endpoint='/sapi/v1/accountSnapshot'):
+    def dailyAccountSnapshot(self, type, limit=15, baseurl=baseurl_spot_margin, endpoint='/sapi/v1/accountSnapshot'):
         ''' 
             Daily Account Snapshot (USER_DATA)
             GET /sapi/v1/accountSnapshot (HMAC SHA256)
@@ -532,45 +532,14 @@ class BinanceConnection:
             expected return - > dict_keys(['code', 'msg', 'snapshotVos'])
             '''
         response = self.__requestUserdata(
-                                        baseurl=baseurl,
-                                        endpoint=endpoint,
-                                        type=type,
-                                        limit=limit
-                                        )
-        try:
-            snapshot    = response
-            snapshotVos = response['snapshotVos']
-            if snapshotVos:
-                if snapshotVos[0]['type'] == 'spot':
-                    newestInfo          = snapshotVos[-1]
-                    totalAssetOfBtc     = float(newestInfo['data']['totalAssetOfBtc'])
-                    positive_balances   = [ asset for asset in newestInfo['data']['balances'] if float(asset['free'])>0 ]
-                    df = pd.DataFrame(positive_balances)
-                    btc_quoted = totalAssetOfBtc * self.currentAveragePrice('btcusdt')
-                    print(f'{35*"#"}\nPositive balances, Spot account\n{35*"#"}')
-                    print(df)
-                    print(35*'#')
-                    print(f"totalAssetOfBtc\t\t: {totalAssetOfBtc:.6f}")
-                    print(f"USDT valued\t\t: {btc_quoted:.4f}")
-                    print(35*'#')
-                elif snapshotVos[0]['type'] == 'futures':
-                    newestInfo = snapshotVos[-1]
-                    assets     = [d for d in newestInfo['data']['assets'] if float(d['walletBalance']) > 0]
-                    positions  = newestInfo['data']['position']
-                    df = pd.DataFrame(positions)
-                    df.dropna(inplace=True)
-                    if f_positions:
-                        print('\nPositions, Futures account\n',df)
-                    else:
-                        print(f'\n{35*"#"}\nBalances, FUTURES ACCOUNT\n{35*"#"}')
-                        print('\n',pd.DataFrame(assets),'\n')
-                        print(35*"#")
-                elif snapshotVos[0]['type'] == 'margin':
-                    pass
-            else:
-                print('snapshotVos is EMPTY')
-        except : 
-            print('Error obteniendo la información. ',__name__)
+                                        baseurl  = baseurl,
+                                        endpoint = endpoint,
+                                        type     = type,
+                                        limit    = limit,
+        )
+        snapshotVos = response['snapshotVos']
+        # btc_quoted = totalAssetOfBtc * self.currentAveragePrice('btcusdt')
+        return snapshotVos
 
     # Userdata, get
     def accountStatus(self, baseurl=baseurl_spot_margin, endpoint='/sapi/v1/account/status'):
@@ -666,7 +635,7 @@ class BinanceConnection:
         return self.__requestUserdata(baseurl, endpoint, rmethod='post', asset=['BTC','USDT'])
     
     # Userdata, get
-    def assetDividendRecord(self, endpoint='/sapi/v1/asset/assetDividend'):
+    def assetDividendRecord(self, baseurl=baseurl_spot_margin, endpoint='/sapi/v1/asset/assetDividend'):
         '''
             Asset Dividend Record (USER_DATA) 
             GET /sapi/v1/asset/assetDividend (HMAC SHA256)
@@ -681,7 +650,7 @@ class BinanceConnection:
             recvWindow	LONG	NO	
             timestamp	LONG	YES
             '''
-        return self.__requestUserdata(endpoint=endpoint, limit=500)
+        return self.__requestUserdata(baseurl=baseurl, endpoint=endpoint, limit=500)
 
     # Userdata, get
     def assetDetail(self, baseurl=baseurl_spot_margin, endpoint='/sapi/v1/asset/assetDetail'):
@@ -1464,6 +1433,8 @@ if __name__== '__main__':
     len(var)
     
     var = binance.dailyAccountSnapshot(type='SPOT')
+    len(var)
+    var[0].keys()
     var = binance.dailyAccountSnapshot(type='FUTURES')
     type(var)
     len(var)
