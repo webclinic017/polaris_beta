@@ -80,7 +80,8 @@ class PolarisBot:
                     frame     = dataframe,
                     name      = collection_name,
                     db        = my_db,
-                    if_exists = 'append')
+                    if_exists = 'append',
+                )
                 logger.warning('# A new collection: %s has been append to database: %s'% \
                     (collection_name,db_name))
                 start_ms = temp_data[-1][0] + timeframe

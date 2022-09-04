@@ -6,14 +6,15 @@
 .venv*/
 
 # EXCLUDED FILE TYPES
-*.log
-*.txt
-*.pckl
-*.yaml
-*.egg-info
 *.code-workspace
+*.csv
+*.egg-info
 *.ipynb_checkpoints
 *.ipynb
+*.log
+*.pckl
+*.txt
+*.yaml
 
 # ALLOWED FILE TYPES
 !requirements.txt
