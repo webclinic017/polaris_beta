@@ -15,6 +15,24 @@ from polaristools.polarisbot import PolarisBot
 from strategies import mystrategies
 
 
+class PandasData_Extend(bt.feeds.PandasData):
+    lines = (
+        'open',
+        'high',
+        'low',
+        'close',
+        'volume',
+    )
+    params = (
+        ('open_time', None),
+        ('open', 0),
+        ('high', 1),
+        ('low', 2),
+        ('close', 3),
+        ('volume', 4),
+    )
+
+
 def add_data_to_cerebro(df_binary:str=None, sample:dict={}, args=None,):
     polaris = PolarisBot()
     arg = parse_inputs(args)
@@ -44,7 +62,8 @@ def add_data_to_cerebro(df_binary:str=None, sample:dict={}, args=None,):
     # if sample:
         # df = df.loc[sample.get('start'):sample.get('end')]
     
-    datas0 = bt.feeds.PandasData(
+    # datas0 = bt.feeds.PandasData(
+    datas0 = PandasData_Extend(
         dataname = df,
         name = df_binary[10:],
         timeframe = tframe, 
