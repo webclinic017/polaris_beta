@@ -52,7 +52,6 @@ class OverUnderMovAv(bt.Indicator):
         movav = self.p.movav(self.data, period=self.p.period)
         self.l.overunder = bt.Cmp(movav, self.data)
 
-
 class BaseStratsCustom(bt.Strategy):
     params = dict(
         verbose = False,
@@ -182,14 +181,13 @@ class BaseStratsCustom(bt.Strategy):
                 
                 self.close()
 
-# VISUALIZATION ######################################
 
+# VISUALIZATION ######################################
 class PriceAction(bt.Strategy):
     def __init__(self):
         pass
     def next(self):
         pass
-
 
 class Indicators(bt.Strategy):
     params = dict(
@@ -266,10 +264,10 @@ class Indicators(bt.Strategy):
         if self.p.stochrsi:
             self.stochrsi = bt.talib.STOCHRSI(
                 self.data.close,
-                stochrsi_timeperiod = self.p.timeperiod,
-                stochrsi_fastk_period = self.p.fastk_period,
-                stochrsi_fastd_period = self.p.fastd_period,
-                stochrsi_fastd_matype = self.p.fastd_matype,
+                stochrsi_timeperiod = self.p.stochrsi_timeperiod,
+                stochrsi_fastk_period = self.p.stochrsi_fastk_period,
+                stochrsi_fastd_period = self.p.stochrsi_fastd_period,
+                stochrsi_fastd_matype = self.p.stochrsi_fastd_matype,
             )
         if self.p.psar:
             self.psar = bt.talib.SAR(
@@ -308,6 +306,7 @@ class Indicators(bt.Strategy):
             )
         if self.p.bbands:
             self.bbands = bt.talib.BBANDS(
+                self.data.close,
                 timeperiod = self.p.bbands_period,
                 nbdevup = self.p.bbands_nbdevup,
                 nbdevdn = self.p.bbands_nbdevdn,
@@ -334,8 +333,8 @@ class Indicators(bt.Strategy):
     def next(self):
         pass
 
-# TRADING STRATEGIES ######################################
 
+# TRADING STRATEGIES ######################################
 class AroonPlusMa(bt.Strategy):
     params = dict(
             verbose = False,
@@ -469,7 +468,6 @@ class AroonPlusMa(bt.Strategy):
                 # and (close<ema) \
                 
                 self.close()
-
 
 class EmaCrossTriple(bt.Strategy):
     params = dict(
@@ -609,7 +607,6 @@ class EmaCrossTriple(bt.Strategy):
                 if self.params.verbose:
                     self.log('POSITION CLOSED BY MARGIN CALL !!')
                 self.close()
-
 
 class Momentum(bt.Strategy):
     params = dict(
