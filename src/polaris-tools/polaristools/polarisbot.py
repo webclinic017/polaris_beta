@@ -227,23 +227,22 @@ class PolarisBot:
                 df['log_returns'] = np.log(1 + df.close.pct_change(lookback))
             elif indicator=='talib_EMA':
                 for period in indicators[indicator]:
-                    timeperiod = period.get('period')
-                    colname = f'talib_EMA_{timeperiod}'
-                    df[colname] = talib.EMA(df.close, timeperiod=timeperiod)
+                    colname = f'talib_EMA_{period}'
+                    df[colname] = talib.EMA(df.close, timeperiod=period)
             elif indicator=='talib_ATR':
                 timeperiod = indicators[indicator].get('timeperiod', 14)
-                df['talib_ATR'] = talib.ATR(df.high, df.low, df.close, timeperiod=timeperiod)
+                df['talib_ATR'] = talib.ATR(df.high.copy(), df.low.copy(), df.close.copy(), timeperiod=timeperiod)
             elif indicator=='talib_SAR':
                 acceleration = indicators[indicator].get('acceleration', 0.02)
                 maximum = indicators[indicator].get('maximum', 0.2)
-                df['talib_SAR'] = talib.SAR(df.high, df.low,acceleration=acceleration, maximum=maximum)
+                df['talib_SAR'] = talib.SAR(df.high.copy(), df.low.copy(), acceleration=acceleration, maximum=maximum)
             elif indicator=='talib_BBANDS':
                 timeperiod = indicators[indicator].get('timeperiod', 5)
                 nbdevup = indicators[indicator].get('nbdevup', 2)
                 nbdevdn = indicators[indicator].get('nbdevdn', 2)
                 matype = indicators[indicator].get('matype', 0)
                 df['BB_up'],df['BB_mid'],df['BB_low'] = talib.BBANDS(
-                    df.close, timeperiod=timeperiod, nbdevup=nbdevup, nbdevdn=nbdevdn, matype=matype
+                    df.close.copy(), timeperiod=timeperiod, nbdevup=nbdevup, nbdevdn=nbdevdn, matype=matype
                 )
             elif indicator=='talib_STOCHRSI':
                 timeperiod = indicators[indicator].get('timeperiod', 14)
