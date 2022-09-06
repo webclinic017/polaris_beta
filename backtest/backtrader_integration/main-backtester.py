@@ -1,17 +1,10 @@
-''' 
-    Actually works
-    pip install matplotlib==3.2.2
-    '''
 from __future__ import (absolute_import, division, print_function,unicode_literals)
 import argparse
 from datetime import datetime
-# from os import environ, chdir
 
-# import pandas as pd
-import pdmongo as pdm
 import backtrader as bt
+from pandas import read_pickle
 
-from polaristools.polarisbot import PolarisBot
 from strategies import mystrategies
 
 
@@ -32,67 +25,52 @@ class PandasData_Extend(bt.feeds.PandasData):
         ('volume', 4),
     )
 
-
-def add_data_to_cerebro(df_binary:str=None, sample:dict={}, args=None,):
-    polaris = PolarisBot()
-    arg = parse_inputs(args)
-    
-    symbol = arg.symbol.upper()
-    timeframe = arg.timeframe
-    filename = f'df_klines_{symbol}_{timeframe}'
-    
-    df_binary   = filename
-    df = polaris.dataframeFromBinary(df_binary)
-    
-    if arg.sample_date:
-        sample.update(**eval('dict(' + arg.sample_date + ')')) 
-        df = df.loc[sample.get('start'):sample.get('end')]
-    elif arg.sample_batch:
-        df = df.iloc[-arg.sample_batch:]
-    
-    if timeframe == '1d':
-        tframe = bt.TimeFrame.Days
-        compression = 1
-    else:
-        tframe = bt.TimeFrame.Minutes
-        compression = int(timeframe[:-1])
-    
-    # df = polaris.dataframeFromBinary(df_binary)
-    
-    # if sample:
-        # df = df.loc[sample.get('start'):sample.get('end')]
-    
-    # datas0 = bt.feeds.PandasData(
-    datas0 = PandasData_Extend(
+def add_data_to_cerebro(sample, symbol:str, timeframe:str):
+    df = read_pickle(f"/home/llagask/Trading/polaris_beta/datasets/df_klines_{symbol.upper()}_{timeframe}.pckl")
+    if isinstance(sample, dict):
+        df = df.loc[sample.get('start') : sample.get('end')]
+    elif isinstance(sample, int):
+        df = df.iloc[-sample:]
+    tframe = bt.TimeFrame.Days if (timeframe=='1d') else bt.TimeFrame.Minutes
+    compression = 1 if (timeframe=='1d') else int(timeframe[:-1])
+    data = PandasData_Extend(
         dataname = df,
-        name = df_binary[10:],
+        name = f"{symbol}_{timeframe}",
         timeframe = tframe, 
         compression = compression,
     )
-    return datas0
+    return data
 
-def run_cerebro(data, data_dual=None, args=None,):
+def run_cerebro(args=None):
     # DEFAULT CONFIG
-    initial_cash=200.00
-    sizer_pct=20
-    comm_broker=0.005
-    leverage_factor=1
+    initial_cash = 200.00
+    sizer_pct = 20
+    comm_broker = 0.005
+    leverage_factor = 1
     margin = 0.6
     
     arg = parse_inputs(args)
+    
+    if arg.sample_date:
+        sample={}
+        sample.update(**eval('dict(' + arg.sample_date + ')'))
+    elif arg.sample_batch:
+        sample = arg.sample_batch
+    else:
+        sample=None
+    
     # BOOLEAN FLAGS
     plot_bt = arg.plot
     verbose = arg.verbose
     write_csv = arg.writecsv
-    
     csvname = arg.csvname # give a filename to csv.
     
-    # *** CHOOSE AN ACTION ***
-    logic_feed = arg.logic
-    indicators = arg.indicators
-    priceaction = arg.priceaction
+    # CHOOSE AN ACTION
+    logic_feed = arg.logic #backtest
+    indicators = arg.indicators #indicators
+    priceaction = arg.priceaction #priceaction
     renko = arg.renko
-    renko_dual = arg.renkodual
+    renko_dual = arg.renko_dual
     heikinashi = arg.heikinashi
     optimization = arg.optimization
     
@@ -101,47 +79,59 @@ def run_cerebro(data, data_dual=None, args=None,):
         'emacrosstriple':mystrategies.EmaCrossTriple,
         'aroon_plus_ma':mystrategies.AroonPlusMa,
     }
-    
-    plot_args = dict(style=arg.plotstyle)
+    plot_args = dict(style=arg.plot_style)
     strat_params = arg.strat_params
     cerebro_params = arg.cerebro_params
     params_s = {}
     params_c = {}
     
-    # *** INSTANTIATE CEREBRO ***
+    # INSTANTIATE CEREBRO
     cerebro = bt.Cerebro()
     
-    # *** DATA FILTERS ***
+    # DATA FILTERS
+    ''' 
+    This section must should be rebuild.
+    '''
     if renko or renko_dual:
         plot_args = dict(style='candle')
         filter_kwargs = dict(
             # hilo=False, autosize=20.0, align=1.0,
         )
         if renko_dual:
+            data = add_data_to_cerebro(sample=sample, symbol=arg.symbol, timeframe='1d')
             cerebro.adddata(data)
             data1 = data.clone()
             data1.addfilter(bt.filters.Renko,**filter_kwargs)
             cerebro.adddata(data1)
         else:
+            data = add_data_to_cerebro(sample=sample, symbol=arg.symbol, timeframe='1d')
+            cerebro.adddata(data)
             data.addfilter(bt.filters.Renko,**filter_kwargs)
         
     elif heikinashi:
         plot_args = dict(style='candle')
         filter_kwargs = dict()
-        data.addfilter(
-            bt.filters.HeikinAshi,
-            **filter_kwargs
-        )
-    
-    # *** ADD DATA
-    if not renko_dual:
+        data = add_data_to_cerebro(sample=sample, symbol=arg.symbol, timeframe='1d')
+        data.addfilter(bt.filters.HeikinAshi, **filter_kwargs)
         cerebro.adddata(data)
-    if data_dual is not None:
-        # when is dual, this is the daily data. 
-        # Previous has to be minutes.
-        cerebro.adddata(data_dual)
     
-    # *** RETRIEVE STRATEGY PARAMETERS FROM CLI.
+    # ADD DATA
+    if not (renko|renko_dual|heikinashi):
+        if arg.data_dual:
+            plot_args = dict(style='line')
+            if arg.sample_batch:
+                sample_mins = int((1440/ int(arg.timeframe[:-1]) )*arg.sample_batch)
+            else:
+                sample_mins = sample
+            data0 = add_data_to_cerebro(sample=sample_mins, symbol=arg.symbol, timeframe=arg.timeframe)
+            data1 = add_data_to_cerebro(sample=sample, symbol=arg.symbol, timeframe='1d')
+            cerebro.adddata(data0)
+            cerebro.adddata(data1)
+        else:
+            data0 = add_data_to_cerebro(sample=sample, symbol=arg.symbol, timeframe=arg.timeframe)
+            cerebro.adddata(data0)
+    
+    # RETRIEVE STRATEGY PARAMETERS FROM CLI.
     if strat_params is not None:
         params_s.update(**eval('dict(' + strat_params + ')'))
         # *** BORROW PARAMS FROM STRATEGY TO CEREBRO.
@@ -153,7 +143,7 @@ def run_cerebro(data, data_dual=None, args=None,):
         sizer_pct = float(params_c.get('sizer_pct', sizer_pct))
         comm_broker = float(params_c.get('comm_broker', comm_broker))
     
-    # *** BROKER CONFIGURATION
+    # BROKER CONFIGURATION
     # cerebro.broker = bt.brokers.BackBroker(slip_perc=0.005)  # 0.5%
     cerebro.broker.set_cash(initial_cash)
     cerebro.addsizer(bt.sizers.PercentSizer, percents=sizer_pct)
@@ -162,12 +152,12 @@ def run_cerebro(data, data_dual=None, args=None,):
         mult = leverage_factor,
     )
     
-    # *** ADD ANALYZERS.
+    # ADD ANALYZERS.
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='tradeanalyzer')
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharperatio')
     cerebro.addanalyzer(bt.analyzers.SQN, _name='systemquality')
     
-    # *** MISCELLANEOUS.
+    # MISCELLANEOUS.
     if write_csv and not optimization:
         path = '/home/llagask/Trading/polaris_beta/backtest/backtrader_integration/logs'
         filename = f'{path}/{csvname}.log'
@@ -178,7 +168,7 @@ def run_cerebro(data, data_dual=None, args=None,):
     if logic_feed is not None:
         mystrat = strat_options.get(logic_feed)
     
-    # *** *** ADD STRATEGY *** ***
+    # ADD STRATEGY
     if optimization:
         cerebro.optstrategy(mystrat,**params_s,)
     elif indicators:
@@ -188,7 +178,7 @@ def run_cerebro(data, data_dual=None, args=None,):
     else:
         cerebro.addstrategy(mystrat,**params_s,)
     
-    # *** RUN CEREBRO ***
+    # RUN CEREBRO
     cerebro.run()
     
     if plot_bt and not optimization:
@@ -201,8 +191,8 @@ def parse_inputs(pargs=None):
     parser = argparse.ArgumentParser(
         description="MAIN FUNCTIONALITIES: priceaction, renko, indicators"
     )
-    
-    # ***DATA ARGS
+    ############################################################
+    # DATA ARGS
     parser.add_argument('--symbol',
         action='store',
         type=str,
@@ -217,18 +207,17 @@ def parse_inputs(pargs=None):
     parser.add_argument('--sample_date',
         action='store',
         type=str,
-        default='',
+        # default='',
         help="e.g: start='2022-01-01',end='2022-06-01' "
     )
     parser.add_argument('--sample_batch',
         action='store',
         type=int,
-        default=500,
+        # default=500, None
         help="Enter a positive integer. e.g:500"
     )
     ############################################################
-    
-    # ***CEREBRO CONFIG
+    # CEREBRO CONFIG
     parser.add_argument('--cerebro_params',
         action='store',
         type=str,
@@ -242,7 +231,7 @@ def parse_inputs(pargs=None):
         action='store_true',
         help='Run parameters optimization instead of backtest.'
     )
-    parser.add_argument('--plotstyle',
+    parser.add_argument('--plot_style',
         action='store',
         type=str,
         default='line',
@@ -274,7 +263,7 @@ def parse_inputs(pargs=None):
         action='store_true',
         help='Show RENKO blocks.'
     )
-    parser.add_argument('--renkodual',
+    parser.add_argument('--renko_dual',
         action='store_true',
         help='Show RENKO blocks against candlesticks.'
     )
@@ -282,9 +271,14 @@ def parse_inputs(pargs=None):
         action='store_true',
         help='Show OHLC as Heikin Ashi.'
     )
-    ############################################################
     
-    # ***STRATEGY PARAMS
+    parser.add_argument('--data_dual',
+        action='store_true',
+        help='Plot minutely data against daily.'
+    )
+    
+    ############################################################
+    # STRATEGY PARAMS
     parser.add_argument('--logic',
         action='store',
         type=str,
@@ -301,9 +295,4 @@ def parse_inputs(pargs=None):
 
 
 if __name__== '__main__':
-    
-    # *** PREPARE DATA FOR BACKTEST
-    input_data = add_data_to_cerebro()
-
-    # *** RUN BACKTEST WITH ALL PARAMETERS ***
-    run_cerebro(data=input_data)
+    run_cerebro()
