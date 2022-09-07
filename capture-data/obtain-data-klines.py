@@ -15,62 +15,54 @@ from polaristools.polarisbot import PolarisBot
 
 
 def obtain_data_klines(polaris, args=None):
-    current = getcwd()
-    if not current.endswith('capture-data'):
-        chdir('/home/llagask/Trading/polaris_beta/capture-data')
+    # current = getcwd()
+    # if not current.endswith('capture-data'):
+        # chdir('/home/llagask/Trading/polaris_beta/capture-data')
     
     args = parse_inputs(args)
 
     updateOption = args.updatedb
     createDbOption = args.createdb
 
-    # top_vol_24h_usdt = [
-        # 'BTCUSDT','ETHUSDT','TRXUSDT','BNBUSDT',
-        # 'SOLUSDT','ADAUSDT','XRPUSDT','LINKUSDT',
-        # 'AVAXUSDT','DOGEUSDT','DOTUSDT','LTCUSDT',
-        # 'MATICUSDT','WAVESUSDT','SHIBUSDT','ZILUSDT',
-        # 'ATOMUSDT','APEUSDT',
-    # ]
+    futures_stable = [
+        'ETHBUSD',
+        # 'BTCBUSD','ETCBUSD','BNBBUSD','SOLBUSD',
+        # 'ANCBUSD','LDOBUSD','ADABUSD','XRPBUSD','AVAXBUSD',
+        # 'GALBUSD','MATICBUSD','DOGEBUSD','NEARBUSD','GMTBUSD',
+        # 'ICPBUSD','DOTBUSD','APEBUSD','FILBUSD','LTCBUSD'
+    ]
 
     symbols_1m = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT','DOGEUSDT']
 
     if args.symbol:
-        asymbols = args.symbol
-    # elif args.portfoliosymbols:
-        # asymbols = top_vol_24h_usdt
-    elif args.portfoliosymbols:
-        asymbols = symbols_1m
+        symbols = args.symbol
+    elif args.symbols_1m:
+        symbols = symbols_1m
+    elif args.futures_stable:
+        symbols = futures_stable
     else:
         print('No valid symbol entered')
 
-    interval    = args.interval
-    stream_type = args.streamtype
-    market_type = args.markettype
-
-    if createDbOption:
-        polaris.createDatabaseKlines(
-        symbols      = asymbols, 
-        interval     = interval,
-        quoted_asset = 'usdt',
-        stream_type  = stream_type,
-        market_type  = market_type,
-    )
-
-    if updateOption:
-        polaris.updateDatabaseKlines(
-        symbols      = asymbols, 
-        interval     = interval,
-        quoted_asset = 'usdt',
-        stream_type  = stream_type,
-        market_type  = market_type,
+    kwargs = dict(
+        symbols      = symbols, 
+        interval     = args.interval,
+        quoted_asset = args.quotedasset,
+        stream_type  = args.streamtype,
+        market_type  = args.markettype,
     )
     
-    chdir('/home/llagask/Trading/polaris_beta')
+    if createDbOption:
+        polaris.createDatabaseKlines(**kwargs)
+
+    if updateOption:
+        polaris.updateDatabaseKlines(**kwargs)
+    # chdir('/home/llagask/Trading/polaris_beta')
 
 def parse_inputs(pargs=None):
     parser = argparse.ArgumentParser(
         description='Choose between create database from scratch or update existing collections'
     )
+    
     parser.add_argument('--createdb',
         action='store_true',
         help='Create a brand new database and collections'
@@ -79,27 +71,34 @@ def parse_inputs(pargs=None):
         action='store_true',
         help='Update existent collections in a database'
     )
+    
     parser.add_argument('--symbol',
         action='append',
         help='call each time for each symbol'
     )
-    parser.add_argument('--portfoliosymbols',
+    parser.add_argument('--symbols_1m',
         action='store_true',
         help='Load data for a list of previously selected symbols'
     )
-    parser.add_argument('--markettype',
-        choices=['spot_margin', 'futures_usd', 'futures_coins']
+    parser.add_argument('--futures_stable',
+        action='store_true',
+        help='Load data for a list of previously selected symbols'
     )
-    parser.add_argument('--quotedasset',
-        choices=['USDT','BUSD','BTC']
-    )
+    
     parser.add_argument('--interval',
         choices=['1d','1h','15m','5m','1m'],
         help='Pick up an interval from the list'
     )
+    parser.add_argument('--quotedasset',
+        choices=['usdt','busd','btc']
+    )
+    parser.add_argument('--markettype',
+        choices=['spot_margin', 'futures_stable', 'futures_coins']
+    )
     parser.add_argument('--streamtype',
         choices=['klines', 'continuous_klines']
     )
+    
     return parser.parse_args(pargs)
 
 
@@ -112,7 +111,7 @@ if __name__== '__main__':
         --createdb \
         --markettype spot_margin \
         --interval 1d \
-        --portfoliosymbols \
+        --symbols_1m \
         --streamtype klines
         
         ###################################
@@ -124,7 +123,7 @@ if __name__== '__main__':
         --updatedb \
         --markettype spot_margin \
         --interval 1m \
-        --portfoliosymbols \
+        --symbols_1m \
         --streamtype klines \
         && cd ..
         

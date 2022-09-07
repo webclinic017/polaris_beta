@@ -5,33 +5,34 @@ from time import time
 
 import dateparser
 from pandas import DataFrame, to_datetime
-import pytz
+# import pytz
 
 
-def historicalKlinesParser(klines: list,set_index:bool=False)-> DataFrame():
+def historicalKlinesParser(klines:list):
+    """
+        Convert object raw kline to DataFrame
+        obtained from the api
         """
-			Convert object raw kline to DataFrame
-			obtained from the api
-			"""
-        columns_name = [ 'open_time','open','high','low','close',
-                        'volume','close_time','quote_asset_volume',
-                        'number_of_trades','taker_buy_base_asset_volume',
-                        'taker_buy_quote_asset_volume','ignore'
-                        ]
-        df = DataFrame(data=klines, columns=columns_name)
-        df['open_time'] = to_datetime(df['open_time'],   unit='ms')
-        df['close_time'] = to_datetime(df['close_time'],  unit='ms')
-        tofloat64 = [ 
-                'open','high','low','close','volume',
-                'quote_asset_volume',
-                'taker_buy_base_asset_volume',
-                'taker_buy_quote_asset_volume'
-        ]
-        df[tofloat64] = df[tofloat64].astype('float64') 
-        df.drop('ignore', axis=1, inplace=True)
-        if set_index:
-                df.set_index(df['open_time'], inplace=True)
-        return df
+    set_index=False
+    columns_name = [ 'open_time','open','high','low','close',
+                    'volume','close_time','quote_asset_volume',
+                    'number_of_trades','taker_buy_base_asset_volume',
+                    'taker_buy_quote_asset_volume','ignore'
+                    ]
+    df = DataFrame(data=klines, columns=columns_name)
+    df['open_time'] = to_datetime(df['open_time'],   unit='ms')
+    df['close_time'] = to_datetime(df['close_time'],  unit='ms')
+    tofloat64 = [ 
+            'open','high','low','close','volume',
+            'quote_asset_volume',
+            'taker_buy_base_asset_volume',
+            'taker_buy_quote_asset_volume'
+    ]
+    df[tofloat64] = df[tofloat64].astype('float64') 
+    df.drop('ignore', axis=1, inplace=True)
+    if set_index:
+            df.set_index(df['open_time'], inplace=True)
+    return df
 
 def logger_func(logger_name,filename):
 	# logger = logging.getLogger(__name__)
@@ -119,12 +120,6 @@ def parse_snapshotvos(snapshotVos:list):
         return df
     else:
         return []
-
-def check_tsieres_integrity(df):
-    ''' 
-        search for missing data.
-        '''
-    pass
 
 
 if __name__== '__main__':

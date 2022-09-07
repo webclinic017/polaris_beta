@@ -12,7 +12,7 @@ import requests
 from urllib.parse import urljoin, urlencode
 
 from polaristools.utils import date_to_milliseconds
-
+# importar logger
 
 class BinanceConnection:
     baseurl_spot_margin = 'https://api.binance.com'
@@ -927,14 +927,7 @@ class BinanceConnection:
             return r.json()
 
     # get
-    def futuresContinuousKlines(self, 
-        pair, 
-        interval, 
-        contractType='PERPETUAL', 
-        baseurl=baseurl_futures_usd,
-        endpoint='/fapi/v1/continuousKlines',
-        **kwargs
-        ):
+    def futuresContinuousKlines(self,pair,interval,endpoint='/fapi/v1/continuousKlines',**kwargs):
         ''' 
             Continuous Contract Kline/Candlestick Data 
             GET /fapi/v1/continuousKlines
@@ -965,10 +958,11 @@ class BinanceConnection:
                 CURRENT_QUARTER
                 NEXT_QUARTER
             '''
+        baseurl = self.baseurl_futures_usd
         payload = dict(
-            pair=pair,
-            interval=interval,
-            contractType=contractType
+            pair = pair,
+            interval = interval,
+            contractType = 'PERPETUAL'
         )
         for k in kwargs:
             if k=='startTime':
@@ -985,13 +979,14 @@ class BinanceConnection:
                 payload['limit'] = kwargs[k]
         url = urljoin(baseurl, endpoint)
         r = requests.get(url, params=payload,)
+        
         if r.status_code != 200:
             print('Unsuccessful operation')
             return r
         else:
             return r.json()
 
-    def getEarliestValidTimestamp(self, symbol, interval, stream_type='kline'):
+    def getEarliestValidTimestamp(self, symbol, interval, stream_type):
         """
             Get earliest valid open timestamp from Binance
             :param symbol: Name of symbol pair e.g BNBBTC
@@ -1002,17 +997,26 @@ class BinanceConnection:
             :type klines_type: HistoricalKlinesType
             :return: first valid timestamp
             """
-        if stream_type=='kline':
-            kline = self.klineCandlestick(
+        if stream_type=='klines':
+            data = self.klineCandlestick(
                 symbol=symbol, 
                 interval=interval,
                 startTime=0,
                 endTime=time()*1000,
                 limit=1
             )
-            return kline[0][0]
-        elif stream_type=='continuousKline':
-            pass
+        elif stream_type=='continuous_klines':
+            data = self.futuresContinuousKlines(
+                pair=symbol, 
+                interval=interval,
+                startTime=0,
+                endTime=time()*1000,
+                limit=1
+            )
+        else:
+            return f"INVALID PARAMETERS ENTERED {__name__}"
+        return data[0][0]
+            
 
     # *** SPOT MARGIN // ACCOUNT ENDPOINTS
     # Trade, post

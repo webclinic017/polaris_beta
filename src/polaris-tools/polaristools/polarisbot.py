@@ -19,7 +19,7 @@ from polaristools.utils import *
 
 class PolarisBot:
 
-    def __init__(self, mongo_cred={}, **kwargs):
+    def __init__(self, mongo_cred:dict, **kwargs):
         ''' 
             '''
         self.binance = BinanceConnection()
@@ -43,45 +43,60 @@ class PolarisBot:
         self,
         symbols:list,
         interval:str,
-        quoted_asset = 'usdt',
-        stream_type  = 'klines',
-        market_type  = 'spot_margin',
-        broker       = 'binance',
+        quoted_asset:str,
+        stream_type:str,
+        market_type:str,
         ):
         logger = logger_func(logger_name=__name__, filename='file.log')
         testConn = self.mongo.pingServer()
         if testConn == 400:
             return 'MongoServer is NOT available\n'
         ms_now              = int(time()*1000)
-        db_name             = f'{broker}_{market_type}_{quoted_asset}'
+        db_name             = f"binance_{market_type}_{quoted_asset}"
         limit               = 500
         timeframe:int       = interval_to_milliseconds(interval)
         last_valid_ms:int   = latest_valid_timestamp(timeframe)
         for symbol in symbols:
             collection_name = f"{stream_type}_{symbol.upper()}_{interval.lower()}"
-            start_ms:int    = self.binance.getEarliestValidTimestamp(symbol, interval)
+            start_ms:int    = self.binance.getEarliestValidTimestamp(symbol, interval, stream_type)
             while True:
-                temp_data = self.binance.klineCandlestick(
-                    symbol      = symbol,
-                    interval    = interval,
-                    startTime   = start_ms,
-                    endTime     = last_valid_ms,
-                    limit       = limit)
-                if not len(temp_data):
+                if stream_type=='klines':
+                    temp_data = self.binance.klineCandlestick(
+                        symbol = symbol,
+                        interval = interval,
+                        startTime = start_ms,
+                        endTime = last_valid_ms,
+                        limit = limit,
+                    )
+                elif stream_type=='continuous_klines':
+                    temp_data = self.binance.futuresContinuousKlines(
+                        pair = symbol,
+                        interval = interval,
+                        startTime = start_ms,
+                        endTime = last_valid_ms,
+                        limit = limit,
+                    )
+                else:
+                    print('Wrong parameters', __name__)
+                    break
+                if not temp_data:
                     logger.warning('Empty data returned from: %s %s'%(symbol,interval))
                     break
+                    
                 firstdata = datetime.utcfromtimestamp(temp_data[0][0]/1000)
                 lastdata = datetime.utcfromtimestamp(temp_data[-1][0]/1000)
                 logger.warning('DATA FETCHED # symbol: %s chuncksize: %d start time: %s end time: %s '%\
                     (symbol, len(temp_data), firstdata, lastdata))
                 dataframe = historicalKlinesParser(temp_data)
                 my_db = self.mongo_client[db_name]
-                pdmongo.to_mongo(
+                ptm = pdmongo.to_mongo(
                     frame     = dataframe,
                     name      = collection_name,
                     db        = my_db,
                     if_exists = 'append',
                 )
+                
+                # Es importante verificar el estado de la accion TO_MONGO, guardando el resultado en una variable.
                 logger.warning('# A new collection: %s has been append to database: %s'% \
                     (collection_name,db_name))
                 start_ms = temp_data[-1][0] + timeframe
@@ -97,17 +112,16 @@ class PolarisBot:
         self,
         symbols:list,
         interval:str,
-        quoted_asset = 'usdt',
-        stream_type  = 'klines',
-        market_type  = 'spot_margin',
-        broker       = 'binance',
+        quoted_asset:str,
+        stream_type:str,
+        market_type:str,
         ):
         logger = logger_func(logger_name=__name__, filename='file.log')
         testConn = self.mongo.pingServer()
         if testConn == 400:
             return 'MongoServer is not available\n'
         ms_now            = int(time()*1000)
-        db_name           = f'{broker}_{market_type}_{quoted_asset}'
+        db_name           = f"binance_{market_type}_{quoted_asset}"
         timeframe:int     = interval_to_milliseconds(interval)
         last_valid_ms:int = latest_valid_timestamp(timeframe)
         for symbol in symbols:
@@ -385,8 +399,3 @@ if __name__== '__main__':
     df.tail()
     df_nan = df[:-1]
     polaris.dataframeToBinary(dataframe=df_nan, filename='df_klines_DOGEUSDT_1d')
-    
-
-    ################################################################################
-    
-    ################################################################################
