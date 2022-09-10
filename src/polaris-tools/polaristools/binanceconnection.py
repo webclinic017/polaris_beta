@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import inspect
 import os
 import re
 from time import time
@@ -51,7 +52,7 @@ class BinanceConnection:
             response = requests.delete(**request_params)
         
         if response.status_code != 200:
-            print('Unsuccessful operation / code:400',__main__)
+            print('Unsuccessful operation / code:400',inspect.currentframe().f_code.co_name)
             return response
         else:
             return response.json()
@@ -67,7 +68,7 @@ class BinanceConnection:
             response = requests.get(url=url, params=payload)
         
         if response.status_code != 200:
-            print('Unsuccessful operation',__main__)
+            print('Unsuccessful operation', inspect.currentframe().f_code.co_name)
             return response
         else:
             return response.json()
@@ -478,7 +479,7 @@ class BinanceConnection:
         url = urljoin(baseurl, endpoint)
         response = requests.post(url, params=payload,)
         if response.status_code != 200:
-            print('Unsuccessful operation')
+            print('Unsuccessful operation', inspect.currentframe().f_code.co_name)
             return response
         else:
             return response.json()
@@ -494,7 +495,7 @@ class BinanceConnection:
         url       =  baseurl + endpoint
         response  = requests.get(url=url)
         if response.status_code != 200:
-            print('Unsuccessful operation')
+            print('Unsuccessful operation', inspect.currentframe().f_code.co_name)
             return response.status_code
         else:
             msg = response.json()['msg']
@@ -816,7 +817,7 @@ class BinanceConnection:
         endpoint = '/api/v3/time'
         r = requests.get(url=self.baseurl_spot_margin+endpoint)
         if r.status_code != 200:
-            print('Unsuccessful operation')
+            print('Unsuccessful operation', inspect.currentframe().f_code.co_name)
         else:
             return r.json()
 
@@ -836,7 +837,7 @@ class BinanceConnection:
         url = urljoin(self.baseurl_spot_margin, endpoint)
         response = requests.get(url=url,params=payload)
         if response.status_code != 200:
-            print('Unsuccessful operation')
+            print('Unsuccessful operation', inspect.currentframe().f_code.co_name)
             return response.status_code
         else:
             r = response.json()
@@ -878,7 +879,7 @@ class BinanceConnection:
                                 params=payload
                                 )
         if response.status_code != 200:
-            print('Unsuccessful operation')
+            print('Unsuccessful operation', inspect.currentframe().f_code.co_name)
             return response
         else:
             return response.json()
@@ -921,7 +922,7 @@ class BinanceConnection:
         url = urljoin(self.baseurl_spot_margin, endpoint)
         r = requests.get(url, params=payload,)
         if r.status_code != 200:
-            print('Unsuccessful operation')
+            print('Unsuccessful operation', inspect.currentframe().f_code.co_name)
             return r.status_code
         else:
             return r.json()
@@ -981,7 +982,7 @@ class BinanceConnection:
         r = requests.get(url, params=payload,)
         
         if r.status_code != 200:
-            print('Unsuccessful operation')
+            # print('Unsuccessful operation', inspect.currentframe().f_code.co_name)
             return r
         else:
             return r.json()

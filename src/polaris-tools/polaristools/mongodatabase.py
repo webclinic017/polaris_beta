@@ -1,4 +1,5 @@
 from bson.objectid import ObjectId
+import inspect
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 import pytz
@@ -67,7 +68,7 @@ class MongoDatabase:
             dtime = (query_newest.next()['open_time']).replace(tzinfo=pytz.utc)
             return dtime
         except:
-            print(f'Parece que la base de datos {db_name} o colección {collection} no han sido creadas aún.')
+            print(f'Parece que la base de datos {db_name} o colección {collection} no han sido creadas aún. {inspect.currentframe().f_code.co_name}')
 
     def deleteNewestEntry(self, db_name:str, collection:str):
         my_db   = self.client[db_name]

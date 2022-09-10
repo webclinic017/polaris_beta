@@ -1,4 +1,5 @@
 from datetime import datetime
+import inspect
 # import os
 import pickle 
 from time import time, sleep
@@ -14,12 +15,12 @@ from polaristools.mongodatabase import MongoDatabase
 from polaristools.utils import *
 
 ''' 
-    Under construction.
+    UNDER CONSTRUCTION.
     '''
 
 class PolarisBot:
 
-    def __init__(self, mongo_cred:dict, **kwargs):
+    def __init__(self, mongo_cred={}, **kwargs):
         ''' 
             '''
         self.binance = BinanceConnection()
@@ -77,12 +78,11 @@ class PolarisBot:
                         limit = limit,
                     )
                 else:
-                    print('Wrong parameters', __name__)
+                    print('Wrong parameters', inspect.currentframe().f_code.co_name)
                     break
                 if not temp_data:
                     logger.warning('Empty data returned from: %s %s'%(symbol,interval))
                     break
-                    
                 firstdata = datetime.utcfromtimestamp(temp_data[0][0]/1000)
                 lastdata = datetime.utcfromtimestamp(temp_data[-1][0]/1000)
                 logger.warning('DATA FETCHED # symbol: %s chuncksize: %d start time: %s end time: %s '%\
@@ -95,8 +95,6 @@ class PolarisBot:
                     db        = my_db,
                     if_exists = 'append',
                 )
-                
-                # Es importante verificar el estado de la accion TO_MONGO, guardando el resultado en una variable.
                 logger.warning('# A new collection: %s has been append to database: %s'% \
                     (collection_name,db_name))
                 start_ms = temp_data[-1][0] + timeframe
@@ -104,7 +102,7 @@ class PolarisBot:
                     logger.warning('Last valid open_time kline has been reached')
                     print('\n')
                     break
-                sleep(3) # Be gentle with the server, avoid ban.
+                sleep(2)
         logger.warning('New Database created successfully')
         print('\n')
 
@@ -134,7 +132,8 @@ class PolarisBot:
                 logger.warning('Database or collection seems does not exists')
                 print('\n')
                 # In a continuous execution environment you don't want to Return the function.
-                return
+                # return
+                continue
             difference = last_valid_ms - newest_ms
             if difference < timeframe:
                 logger.warning('Newest valid data stored yet for collection: %s'%collection_name)
@@ -142,13 +141,24 @@ class PolarisBot:
                 continue
             start_ms = (newest_ms + timeframe)
             while True:
-                temp_data = self.binance.klineCandlestick(
-                    symbol      = symbol,
-                    interval    = interval,
-                    startTime   = start_ms,
-                    endTime     = last_valid_ms,
+                if stream_type=='klines':
+                    temp_data = self.binance.klineCandlestick(
+                        symbol = symbol,
+                        interval = interval,
+                        startTime = start_ms,
+                        endTime = last_valid_ms,
                     )
-                if not len(temp_data):
+                elif stream_type=='continuous_klines':
+                    temp_data = self.binance.futuresContinuousKlines(
+                        pair = symbol,
+                        interval = interval,
+                        startTime = start_ms,
+                        endTime = last_valid_ms,
+                    )
+                else:
+                    print('Wrong parameters', inspect.currentframe().f_code.co_name)
+                    break
+                if not temp_data:
                     logger.warning('Empty data returned from: %s %s'%(symbol,interval))
                     print('\n')
                     break
@@ -158,7 +168,7 @@ class PolarisBot:
                     (symbol, len(temp_data), firstdata, lastdata))
                 dataframe = historicalKlinesParser(temp_data)
                 my_db = self.mongo_client[db_name]
-                pdmongo.to_mongo(
+                ptm = pdmongo.to_mongo(
                     frame     = dataframe,
                     name      = collection_name,
                     db        = my_db,
@@ -315,7 +325,7 @@ class PolarisBot:
                 pickle.dump(dataframe, bin_df)
             print(f'{filename} persisted as binary ok')
         except Exception as e:
-            print(e)
+            print(f"{e}\nfrom:{inspect.currentframe().f_code.co_name}")
 
     @_find_directory(target_dir='datasets')
     def dataframeFromBinary(self,filename:str):
@@ -323,9 +333,9 @@ class PolarisBot:
             filepath = f"datasets/{filename}.pckl"
             with open(filepath, 'rb') as df_bin:
                 dataframe = pickle.load(df_bin)
-            return dataframe
-        except Exception as e:
-            print(e)
+                return dataframe
+        except:
+            print("Requested file does not exists yet\n")
 
     def checkWallet(self, market_type):
         return self.binance.dailyAccountSnapshot(type=market_type)
