@@ -1,6 +1,5 @@
 import argparse
-from os import environ
-from os import getcwd, chdir
+from os import environ, getcwd, chdir
 from time import sleep
 
 from polaristools.polarisbot import PolarisBot
@@ -15,48 +14,40 @@ from polaristools.polarisbot import PolarisBot
 
 
 def obtain_data_klines(polaris, args=None):
-    # current = getcwd()
-    # if not current.endswith('capture-data'):
-        # chdir('/home/llagask/Trading/polaris_beta/capture-data')
+    # Because logging.
+    current = getcwd()
+    if not current.endswith('capture-data'):
+        chdir('/home/llagask/Trading/polaris_beta/capture-data')
     
-    args = parse_inputs(args)
+    arg = parse_inputs(args)
 
-    updateOption = args.updatedb
-    createDbOption = args.createdb
-
-    futures_stable = [
-        'ETHBUSD',
-        # 'BTCBUSD','ETCBUSD','BNBBUSD','SOLBUSD',
-        # 'ANCBUSD','LDOBUSD','ADABUSD','XRPBUSD','AVAXBUSD',
-        # 'GALBUSD','MATICBUSD','DOGEBUSD','NEARBUSD','GMTBUSD',
-        # 'ICPBUSD','DOTBUSD','APEBUSD','FILBUSD','LTCBUSD'
+    # current: futures busd (1d)
+    coins = [
+        'GMT',
+        'ANC',
+        'APE','LDO',
+        'FIL','ADA','ETC','BNB',
+        'AVAX','ETH','GAL','DOT',
+        'DOGE','LTC','NEAR','XRP',
+        'ICP',
+        'SOL',
+        'BTC','MATIC',
     ]
-
-    symbols_1m = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT','DOGEUSDT']
-
-    if args.symbol:
-        symbols = args.symbol
-    elif args.symbols_1m:
-        symbols = symbols_1m
-    elif args.futures_stable:
-        symbols = futures_stable
-    else:
-        print('No valid symbol entered')
+    
+    symbols = [(coin+arg.quotedasset).upper() for coin in coins]
 
     kwargs = dict(
         symbols      = symbols, 
-        interval     = args.interval,
-        quoted_asset = args.quotedasset,
-        stream_type  = args.streamtype,
-        market_type  = args.markettype,
+        interval     = arg.interval,
+        quoted_asset = arg.quotedasset,
+        stream_type  = arg.streamtype,
+        market_type  = arg.markettype,
     )
-    
-    if createDbOption:
+    if arg.createdb:
         polaris.createDatabaseKlines(**kwargs)
-
-    if updateOption:
+    elif arg.updatedb:
         polaris.updateDatabaseKlines(**kwargs)
-    # chdir('/home/llagask/Trading/polaris_beta')
+    chdir('/home/llagask/Trading/polaris_beta')
 
 def parse_inputs(pargs=None):
     parser = argparse.ArgumentParser(
@@ -72,21 +63,13 @@ def parse_inputs(pargs=None):
         help='Update existent collections in a database'
     )
     
-    parser.add_argument('--symbol',
-        action='append',
-        help='call each time for each symbol'
-    )
-    parser.add_argument('--symbols_1m',
-        action='store_true',
-        help='Load data for a list of previously selected symbols'
-    )
-    parser.add_argument('--futures_stable',
+    parser.add_argument('--portfolio',
         action='store_true',
         help='Load data for a list of previously selected symbols'
     )
     
     parser.add_argument('--interval',
-        choices=['1d','1h','15m','5m','1m'],
+        choices=['1d','1m'],
         help='Pick up an interval from the list'
     )
     parser.add_argument('--quotedasset',
@@ -103,10 +86,18 @@ def parse_inputs(pargs=None):
 
 
 if __name__== '__main__':
-    ''' 
-        Create Databases and Collections in a MongoDB database and/or Update Collections in a database
+    database_config = dict(
+        db_host = '192.168.8.106', #raspi
+        db_user = 'admin',
+        db_pass = environ.get('mongodbadminpass')
+    )
+    polaris = PolarisBot(mongo_cred=database_config)
+    
+    obtain_data_klines(polaris)
 
-        # 1 DAY - SPOTMARGIN
+    ''' 
+        ###################################
+        # 1 DAY - SPOT_MARGIN
         python3 obtain-data-klines.py \
         --createdb \
         --markettype spot_margin \
@@ -114,27 +105,46 @@ if __name__== '__main__':
         --symbols_1m \
         --streamtype klines
         
+        
         ###################################
+        # 1 DAY - FUTURE_STABLE
+        python3 obtain-data-klines.py \
+        --createdb \
+        --markettype spot_margin \
+        --interval 1d \
+        --symbols_1m \
+        --streamtype klines
+        
+        '''
+        
+    ''' 
+        ###################################
+        # 1 DAY - FUTURES_STABLE
+        python3 obtain-data-klines.py \
+        --updatedb \
+        --interval 1d \
+        --quotedasset busd \
+        --streamtype continuous_klines \
+        --markettype futures_stable
+        
+        ###################################
+        # 1 MIN - FUTURES_STABLE
+        python3 obtain-data-klines.py \
+        --updatedb \
+        --interval 1m \
+        --quotedasset busd \
+        --streamtype continuous_klines \
+        --markettype futures_stable
+        
         ###################################
         
         # 1 MIN - SPOTMARGIN
-        cd capture-data/ && \
         python3 obtain-data-klines.py \
         --updatedb \
         --markettype spot_margin \
-        --interval 1m \
-        --symbols_1m \
         --streamtype klines \
-        && cd ..
+        --portfolio \
+        --interval 1m \
+        --quotedasset usdt \
         
         '''
-    
-    database_config = dict(
-        db_host = '192.168.8.106', #raspi
-        db_user = 'admin',
-        db_pass = environ.get('mongodbadminpass')
-    )
-    
-    polaris = PolarisBot(mongo_cred=database_config)
-    
-    obtain_data_klines(polaris)

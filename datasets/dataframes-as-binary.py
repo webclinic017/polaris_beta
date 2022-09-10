@@ -1,5 +1,6 @@
+import argparse
 from os import environ
-from os import getcwd, chdir
+# from os import getcwd, chdir
 from time import perf_counter
 from datetime import datetime
 
@@ -10,14 +11,15 @@ from polaristools.polarisbot import PolarisBot
 ''' 
     This script does two things.
     
-    (1) Read mongo database in a specific collection, 
-        create a dataframe  or update a existent one.
+    (1) Read mongo database in a specific collection and
+        create a dataframe from scratch OR update an existent one.
         Finally persist this as binary file.
-    (2) Read dataframes in e.g: 1 minute interval,
-            resample in many other major intervals,
-            finally persist as binary.
-            
-    USE: Apply periodically with new data.
+    
+    (2) Read dataframes in 1 minute interval,
+        resample it in many other major intervals,
+        finally persist as binary.
+    
+    APPLY PERIODICALLY WITH NEW DATA.
     '''
 
 raspi = '192.168.8.106'
@@ -27,23 +29,24 @@ db_pass = environ.get('mongodbadminpass')
 database_config = {
     'db_host':raspi,
     'db_user':db_user,
-    'db_pass':db_pass
+    'db_pass':db_pass,
 }
 polaris = PolarisBot(mongo_cred=database_config)
 
 
-def from_mongo_to_binary_df(symbols:list, interval:int, database:str):
+def from_mongo_to_binary_df(symbols:list, stream_type:str, interval:int, database:str):
     start=perf_counter()
+    
     for symbol in symbols:
         # Define filename
-        filename = f'df_klines_{symbol}_{interval}'
+        filename = f'df_{stream_type}_{symbol}_{interval}'
         
         # Read dataframe from binary.
         df_bin = polaris.dataframeFromBinary(filename)
         
         if df_bin is None:
-            # Query databse for entire data.
-            collection = f'klines_{symbol}_{interval}'
+            # Query database for entire data.
+            collection = f'{stream_type}_{symbol}_{interval}'
             df_new = polaris.createDataframe(mydb=database, collection=collection)
             polaris.dataframeToBinary(dataframe=df_new, filename=filename)
             print(f'*** New Dataframe persisted as binary... {symbol} - {interval} ***')
@@ -53,17 +56,11 @@ def from_mongo_to_binary_df(symbols:list, interval:int, database:str):
         last_date = df_bin.last_valid_index().to_pydatetime()
         
         # Query databse
-        collection = f'klines_{symbol}_{interval}'
+        collection = f'{stream_type}_{symbol}_{interval}'
         df_new = polaris.createDataframe(mydb=database, collection=collection, date_range={'gt':last_date})
         if df_new.empty:
             print('There are no new data to add in: ',filename)
             continue
-        
-        # Search for NaN in dataframes.
-        ''' if int(df_new.isnull().sum().sum()) > 0:
-            print('There are NaN values in the new data.')
-            print(df_new.isnull().sum())
-            break '''
         
         # Concatenate dataframes
         df_updated = pd.concat([df_bin, df_new])
@@ -75,18 +72,13 @@ def from_mongo_to_binary_df(symbols:list, interval:int, database:str):
     totalt= (end-start)
     print(f'Elapsed time: {totalt:.2f} seconds.\n')
 
-def read_resample_write():
+def read_resample_write(stream_type:str, symbols:list):
     ''' 
         open 1 minute datasets
         and resample to 240,120,60,30,15,10,5,3.
         '''
     start=perf_counter()
-    dfs_1m = [
-        'df_klines_BTCUSDT_1m',
-        'df_klines_ETHUSDT_1m',
-        'df_klines_BNBUSDT_1m',
-        'df_klines_DOGEUSDT_1m'
-    ]
+    dfs_1m = [f"df_{stream_type}_{symbol}_1m" for symbol in symbols]
     rs_p = [240,120,60,30,15,10,5,3]
     for df in dfs_1m:
         dataframe = polaris.dataframeFromBinary(df)
@@ -98,28 +90,102 @@ def read_resample_write():
                     {'open':'first','high':'max','low':'min','close':'last','volume':'sum'}
                 )
             filename = df[:-2]+str(p)+'m'
-            polaris.dataframeToBinary(df_rs,filename)
+            polaris.dataframeToBinary(df_rs, filename)
             print(f'Ready with {df} // resampled to {p} minutes')
     end=perf_counter()
     elapsed = end-start
     print(f'Resample finished succesfully. Elapsed time: {elapsed:.2f} seconds.')
 
+def parse_inputs(pargs=None):
+    parser = argparse.ArgumentParser(
+        description='...'
+    )
+    
+    parser.add_argument('--mongo_to_df',
+        action='store_true',
+        help='...'
+    )
+    parser.add_argument('--resample_df',
+        action='store_true',
+        help='...'
+    )
+    
+    parser.add_argument('--interval',
+        choices=['1d', '1m'],
+        help='Pick up an interval from the list'
+    )
+    parser.add_argument('--streamtype',
+        choices=['klines', 'continuous_klines']
+    )
+    parser.add_argument('--quotedasset',
+        choices=['usdt', 'busd']
+    )
+    parser.add_argument('--markettype',
+        choices=['spot_margin', 'futures_stable', 'futures_coins']
+    )
+    return parser.parse_args(pargs)
+
+def main(args=None):
+    arg = parse_inputs(args)
+    
+    database = f"binance_{arg.markettype}_{arg.quotedasset}"
+    
+    # current: spot_margin (1d)
+    # coins = [
+        # 'ZIL','ATOM','ETH','BNB','DOGE',
+        # 'APE','AVAX','MATIC','LINK','DOT',
+        # 'XRP','BTC','ADA','WAVES','LTC',
+        # 'SOL','TRX','SHIB',
+        # ]
+    
+    # current: futures busd (1d)
+    # coins = [
+    #     'GMT',
+    #     'ANC',
+    #     'APE','LDO',
+    #     'FIL','ADA','ETC','BNB',
+    #     'AVAX','ETH','GAL','DOT',
+    #     'DOGE','LTC','NEAR','XRP',
+    #     'ICP',
+    #     'SOL',
+    #     'BTC','MATIC',
+    #     ]
+    
+    symbols = [(coin + arg.quotedasset).upper() for coin in coins]
+    
+    if arg.mongo_to_df:
+        from_mongo_to_binary_df(
+            symbols = symbols,
+            stream_type = arg.streamtype,
+            interval = arg.interval,
+            database = database,
+        )
+    if arg.resample_df:
+        read_resample_write(
+            stream_type=arg.streamtype,
+            symbols=symbols,
+        )
+
 
 if __name__== '__main__':
+    main()
     
-    symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT','DOGEUSDT']
-    database = 'binance_spot_margin_usdt'
-    
-    from_mongo_to_binary_df(
-        symbols = symbols,
-        interval = '1d',
-        database = database,
-    )
-    
-    from_mongo_to_binary_df(
-        symbols = symbols,
-        interval = '1m',
-        database = database,
-    )
-
-    read_resample_write()
+    ''' 
+        ########## SPOT #########################
+        python3 dataframes-as-binary.py \
+        --mongo_to_df \
+        --streamtype klines \
+        --quotedasset usdt \
+        --markettype spot_margin \
+        --interval 1d
+        
+        ########## FUTURES #########################
+        python3 dataframes-as-binary.py \
+        --mongo_to_df \
+        --streamtype continuous_klines \
+        --quotedasset busd \
+        --markettype futures_stable \
+        --interval 1d
+        
+        
+        '''
