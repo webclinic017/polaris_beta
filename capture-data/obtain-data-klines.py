@@ -45,7 +45,7 @@ def obtain_data_klines(polaris, args=None):
         coins=spot_usdt
     
     symbols = [coin for coin in coins]
-
+    
     kwargs = dict(
         symbols      = symbols, 
         interval     = arg.interval,
@@ -110,51 +110,41 @@ if __name__== '__main__':
         # 1 DAY - SPOT_MARGIN
         python3 obtain-data-klines.py \
         --createdb \
-        --markettype spot_margin \
+        --portfolio spot_usdt \
         --interval 1d \
-        --symbols_1m \
-        --streamtype klines
-        
-        
-        ###################################
-        # 1 DAY - FUTURE_STABLE
-        python3 obtain-data-klines.py \
-        --createdb \
+        --quotedasset usdt \
         --markettype spot_margin \
-        --interval 1d \
-        --symbols_1m \
         --streamtype klines
+            
+            ###################################
+            # 1 DAY - SPOT_MARGIN
+            python3 obtain-data-klines.py \
+            --updatedb \
+            --portfolio spot_usdt \
+            --interval 1d \
+            --quotedasset usdt \
+            --markettype spot_margin \
+            --streamtype klines
         
-        '''
         
-    ''' 
         ###################################
         # 1 DAY - FUTURES_STABLE
         python3 obtain-data-klines.py \
-        --updatedb \
+        --createdb \
+        --portfolio futures_busd \
         --interval 1d \
         --quotedasset busd \
-        --streamtype continuous_klines \
-        --markettype futures_stable
+        --markettype futures_stable \
+        --streamtype continuous_klines
         
-        ###################################
-        # 1 MIN - FUTURES_STABLE
-        python3 obtain-data-klines.py \
-        --updatedb \
-        --interval 1m \
-        --quotedasset busd \
-        --streamtype continuous_klines \
-        --markettype futures_stable
-        
-        ###################################
-        
-        # 1 MIN - SPOTMARGIN
-        python3 obtain-data-klines.py \
-        --updatedb \
-        --markettype spot_margin \
-        --streamtype klines \
-        --portfolio \
-        --interval 1m \
-        --quotedasset usdt \
+            ###################################
+            # 1 DAY - FUTURES_STABLE
+            python3 obtain-data-klines.py \
+            --updatedb \
+            --portfolio futures_busd \
+            --interval 1d \
+            --quotedasset busd \
+            --markettype futures_stable \
+            --streamtype continuous_klines
         
         '''

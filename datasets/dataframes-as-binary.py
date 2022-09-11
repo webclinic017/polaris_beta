@@ -181,6 +181,7 @@ if __name__== '__main__':
         ########## SPOT #########################
         python3 dataframes-as-binary.py \
         --mongo_to_df \
+        --portfolio spot_usdt
         --streamtype klines \
         --quotedasset usdt \
         --markettype spot_margin \
@@ -189,6 +190,7 @@ if __name__== '__main__':
         ########## FUTURES #########################
         python3 dataframes-as-binary.py \
         --mongo_to_df \
+        --portfolio futures_busd
         --streamtype continuous_klines \
         --quotedasset busd \
         --markettype futures_stable \
