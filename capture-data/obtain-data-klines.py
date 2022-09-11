@@ -21,20 +21,30 @@ def obtain_data_klines(polaris, args=None):
     
     arg = parse_inputs(args)
 
-    # current: futures busd (1d)
-    coins = [
-        'GMT',
-        'ANC',
-        'APE','LDO',
-        'FIL','ADA','ETC','BNB',
-        'AVAX','ETH','GAL','DOT',
-        'DOGE','LTC','NEAR','XRP',
-        'ICP',
-        'SOL',
-        'BTC','MATIC',
-    ]
+    futures_busd = [
+        'LUNA2BUSD','BTCBUSD','1000LUNCBUSD','ETHBUSD','ANCBUSD','ADABUSD',
+        'SOLBUSD','GALBUSD','BNBBUSD','ETCBUSD','LEVERBUSD','GMTBUSD',
+        '1000SHIBBUSD','LDOBUSD','XRPBUSD','WAVESBUSD','AVAXBUSD','DOGEBUSD',
+        'APEBUSD','NEARBUSD','FTMBUSD','ICPBUSD','MATICBUSD','FILBUSD',
+        'LINKBUSD','LTCBUSD','DOTBUSD','TLMBUSD','SANDBUSD','CVXBUSD',
+        'GALABUSD','UNIBUSD','DODOBUSD','AUCTIONBUSD','TRXBUSD','FTTBUSD',
+        ]
+    spot_usdt = [
+        'DODOUSDT','BNBUSDT','CVXUSDT','ETHUSDT','MATICUSDT','FTMUSDT',
+        'FTTUSDT','GMTUSDT','GALAUSDT','BTCUSDT','ADAUSDT','ANCUSDT',
+        'TLMUSDT','WAVESUSDT','ICPUSDT','AUCTIONUSDT','DOTUSDT','TRXUSDT',
+        'SANDUSDT','FILUSDT','LEVERUSDT','UNIUSDT','DOGEUSDT','LDOUSDT',
+        'AVAXUSDT','LTCUSDT','APEUSDT','SOLUSDT','NEARUSDT','XRPUSDT',
+        'ETCUSDT','LINKUSDT','GALUSDT',
+        ]
+    # difference={'1000LUNC', '1000SHIB', 'LUNA2'}
     
-    symbols = [(coin+arg.quotedasset).upper() for coin in coins]
+    if arg.portfolio=='futures_busd':
+        coins=futures_busd
+    elif arg.portfolio=='spot_usdt':
+        coins=spot_usdt
+    
+    symbols = [coin for coin in coins]
 
     kwargs = dict(
         symbols      = symbols, 
@@ -64,7 +74,7 @@ def parse_inputs(pargs=None):
     )
     
     parser.add_argument('--portfolio',
-        action='store_true',
+        choices=['futures_busd', 'spot_usdt'],
         help='Load data for a list of previously selected symbols'
     )
     

@@ -110,6 +110,11 @@ def parse_inputs(pargs=None):
         help='...'
     )
     
+    parser.add_argument('--portfolio',
+        choices=['futures_busd', 'spot_usdt'],
+        help='Load data for a list of previously selected symbols'
+    )
+    
     parser.add_argument('--interval',
         choices=['1d', '1m'],
         help='Pick up an interval from the list'
@@ -130,28 +135,30 @@ def main(args=None):
     
     database = f"binance_{arg.markettype}_{arg.quotedasset}"
     
-    # current: spot_margin (1d)
-    # coins = [
-        # 'ZIL','ATOM','ETH','BNB','DOGE',
-        # 'APE','AVAX','MATIC','LINK','DOT',
-        # 'XRP','BTC','ADA','WAVES','LTC',
-        # 'SOL','TRX','SHIB',
-        # ]
+    futures_busd = [
+        'LUNA2BUSD','BTCBUSD','1000LUNCBUSD','ETHBUSD','ANCBUSD','ADABUSD',
+        'SOLBUSD','GALBUSD','BNBBUSD','ETCBUSD','LEVERBUSD','GMTBUSD',
+        '1000SHIBBUSD','LDOBUSD','XRPBUSD','WAVESBUSD','AVAXBUSD','DOGEBUSD',
+        'APEBUSD','NEARBUSD','FTMBUSD','ICPBUSD','MATICBUSD','FILBUSD',
+        'LINKBUSD','LTCBUSD','DOTBUSD','TLMBUSD','SANDBUSD','CVXBUSD',
+        'GALABUSD','UNIBUSD','DODOBUSD','AUCTIONBUSD','TRXBUSD','FTTBUSD',
+        ]
+    spot_usdt = [
+        'DODOUSDT','BNBUSDT','CVXUSDT','ETHUSDT','MATICUSDT','FTMUSDT',
+        'FTTUSDT','GMTUSDT','GALAUSDT','BTCUSDT','ADAUSDT','ANCUSDT',
+        'TLMUSDT','WAVESUSDT','ICPUSDT','AUCTIONUSDT','DOTUSDT','TRXUSDT',
+        'SANDUSDT','FILUSDT','LEVERUSDT','UNIUSDT','DOGEUSDT','LDOUSDT',
+        'AVAXUSDT','LTCUSDT','APEUSDT','SOLUSDT','NEARUSDT','XRPUSDT',
+        'ETCUSDT','LINKUSDT','GALUSDT',
+        ]
+    # difference={'1000LUNC', '1000SHIB', 'LUNA2'}
     
-    # current: futures busd (1d)
-    # coins = [
-    #     'GMT',
-    #     'ANC',
-    #     'APE','LDO',
-    #     'FIL','ADA','ETC','BNB',
-    #     'AVAX','ETH','GAL','DOT',
-    #     'DOGE','LTC','NEAR','XRP',
-    #     'ICP',
-    #     'SOL',
-    #     'BTC','MATIC',
-    #     ]
+    if arg.portfolio=='futures_busd':
+        coins=futures_busd
+    elif arg.portfolio=='spot_usdt':
+        coins=spot_usdt
     
-    symbols = [(coin + arg.quotedasset).upper() for coin in coins]
+    symbols = [coin for coin in coins]
     
     if arg.mongo_to_df:
         from_mongo_to_binary_df(
