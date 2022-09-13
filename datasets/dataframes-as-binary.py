@@ -49,7 +49,7 @@ def from_mongo_to_binary_df(symbols:list, stream_type:str, interval:int, databas
             collection = f'{stream_type}_{symbol}_{interval}'
             df_new = polaris.createDataframe(mydb=database, collection=collection)
             polaris.dataframeToBinary(dataframe=df_new, filename=filename)
-            print(f'*** New Dataframe persisted as binary... {symbol} - {interval} ***')
+            print(f'*** New Dataframe persisted as binary... {symbol} - {interval} ***\n')
             continue
         
         # Capture newest date from last row in previously saved Dataframe.
@@ -110,10 +110,10 @@ def parse_inputs(pargs=None):
         help='...'
     )
     
-    parser.add_argument('--portfolio',
-        choices=['futures_busd', 'spot_usdt'],
-        help='Load data for a list of previously selected symbols'
-    )
+    # parser.add_argument('--portfolio',
+        # choices=['futures_busd', 'spot_usdt'],
+        # help='Load data for a list of previously selected symbols'
+    # )
     
     parser.add_argument('--interval',
         choices=['1d', '1m'],
@@ -136,12 +136,13 @@ def main(args=None):
     database = f"binance_{arg.markettype}_{arg.quotedasset}"
     
     futures_busd = [
-        'LUNA2BUSD','BTCBUSD','1000LUNCBUSD','ETHBUSD','ANCBUSD','ADABUSD',
-        'SOLBUSD','GALBUSD','BNBBUSD','ETCBUSD','LEVERBUSD','GMTBUSD',
-        '1000SHIBBUSD','LDOBUSD','XRPBUSD','WAVESBUSD','AVAXBUSD','DOGEBUSD',
-        'APEBUSD','NEARBUSD','FTMBUSD','ICPBUSD','MATICBUSD','FILBUSD',
-        'LINKBUSD','LTCBUSD','DOTBUSD','TLMBUSD','SANDBUSD','CVXBUSD',
-        'GALABUSD','UNIBUSD','DODOBUSD','AUCTIONBUSD','TRXBUSD','FTTBUSD',
+        'BTCBUSD','ANCBUSD','SOLBUSD','BNBBUSD','ETCBUSD','ETHBUSD',
+        'ADABUSD','DOGEBUSD','LTCBUSD','MATICBUSD','LINKBUSD','XRPBUSD',
+        'WAVESBUSD','AVAXBUSD','FTTBUSD','GALBUSD','LEVERBUSD','GMTBUSD',
+        'LDOBUSD','APEBUSD','NEARBUSD','FTMBUSD','ICPBUSD','FILBUSD',
+        'DOTBUSD','TLMBUSD','SANDBUSD','CVXBUSD','AUCTIONBUSD','DODOBUSD',
+        'GALABUSD','TRXBUSD','UNIBUSD',
+        'LUNA2BUSD','1000LUNCBUSD','1000SHIBBUSD',
         ]
     spot_usdt = [
         'DODOUSDT','BNBUSDT','CVXUSDT','ETHUSDT','MATICUSDT','FTMUSDT',
@@ -150,12 +151,12 @@ def main(args=None):
         'SANDUSDT','FILUSDT','LEVERUSDT','UNIUSDT','DOGEUSDT','LDOUSDT',
         'AVAXUSDT','LTCUSDT','APEUSDT','SOLUSDT','NEARUSDT','XRPUSDT',
         'ETCUSDT','LINKUSDT','GALUSDT',
+        'LUNCUSDT','SHIBUSDT','LUNAUSDT',
         ]
-    # difference={'1000LUNC', '1000SHIB', 'LUNA2'}
     
-    if arg.portfolio=='futures_busd':
+    if arg.streamtype=='continuous_klines':
         coins=futures_busd
-    elif arg.portfolio=='spot_usdt':
+    elif arg.streamtype=='klines':
         coins=spot_usdt
     
     symbols = [coin for coin in coins]
@@ -181,20 +182,26 @@ if __name__== '__main__':
         ########## SPOT #########################
         python3 dataframes-as-binary.py \
         --mongo_to_df \
-        --portfolio spot_usdt
         --streamtype klines \
+        --interval 1d \
         --quotedasset usdt \
         --markettype spot_margin \
-        --interval 1d
         
         ########## FUTURES #########################
         python3 dataframes-as-binary.py \
         --mongo_to_df \
-        --portfolio futures_busd
         --streamtype continuous_klines \
+        --interval 1d \
         --quotedasset busd \
         --markettype futures_stable \
-        --interval 1d
         
+            ########## FUTURES #########################
+            python3 dataframes-as-binary.py \
+            --mongo_to_df \
+            --resample_df \
+            --streamtype continuous_klines \
+            --interval 1m \
+            --quotedasset busd \
+            --markettype futures_stable \
         
         '''

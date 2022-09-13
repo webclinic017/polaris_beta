@@ -22,12 +22,13 @@ def obtain_data_klines(polaris, args=None):
     arg = parse_inputs(args)
 
     futures_busd = [
-        'LUNA2BUSD','BTCBUSD','1000LUNCBUSD','ETHBUSD','ANCBUSD','ADABUSD',
-        'SOLBUSD','GALBUSD','BNBBUSD','ETCBUSD','LEVERBUSD','GMTBUSD',
-        '1000SHIBBUSD','LDOBUSD','XRPBUSD','WAVESBUSD','AVAXBUSD','DOGEBUSD',
-        'APEBUSD','NEARBUSD','FTMBUSD','ICPBUSD','MATICBUSD','FILBUSD',
-        'LINKBUSD','LTCBUSD','DOTBUSD','TLMBUSD','SANDBUSD','CVXBUSD',
-        'GALABUSD','UNIBUSD','DODOBUSD','AUCTIONBUSD','TRXBUSD','FTTBUSD',
+        'BTCBUSD','ANCBUSD','SOLBUSD','BNBBUSD','ETCBUSD','ETHBUSD',
+        'ADABUSD','DOGEBUSD','LTCBUSD','MATICBUSD','LINKBUSD','XRPBUSD',
+        'WAVESBUSD','AVAXBUSD','FTTBUSD','GALBUSD','LEVERBUSD','GMTBUSD',
+        'LDOBUSD','APEBUSD','NEARBUSD','FTMBUSD','ICPBUSD','FILBUSD',
+        'DOTBUSD','TLMBUSD','SANDBUSD','CVXBUSD','AUCTIONBUSD','DODOBUSD',
+        'GALABUSD','TRXBUSD','UNIBUSD',
+        'LUNA2BUSD','1000LUNCBUSD','1000SHIBBUSD',
         ]
     spot_usdt = [
         'DODOUSDT','BNBUSDT','CVXUSDT','ETHUSDT','MATICUSDT','FTMUSDT',
@@ -36,12 +37,14 @@ def obtain_data_klines(polaris, args=None):
         'SANDUSDT','FILUSDT','LEVERUSDT','UNIUSDT','DOGEUSDT','LDOUSDT',
         'AVAXUSDT','LTCUSDT','APEUSDT','SOLUSDT','NEARUSDT','XRPUSDT',
         'ETCUSDT','LINKUSDT','GALUSDT',
+        'LUNCUSDT','SHIBUSDT','LUNAUSDT',
         ]
-    # difference={'1000LUNC', '1000SHIB', 'LUNA2'}
+    # difference= {'1000LUNC', '1000SHIB', 'LUNA2','LUNA',     'LUNC', 'SHIB'}
+    #               fut         fut         fut    spot         spot    spot
     
-    if arg.portfolio=='futures_busd':
+    if arg.streamtype=='continuous_klines':
         coins=futures_busd
-    elif arg.portfolio=='spot_usdt':
+    elif arg.streamtype=='klines':
         coins=spot_usdt
     
     symbols = [coin for coin in coins]
@@ -73,10 +76,10 @@ def parse_inputs(pargs=None):
         help='Update existent collections in a database'
     )
     
-    parser.add_argument('--portfolio',
-        choices=['futures_busd', 'spot_usdt'],
-        help='Load data for a list of previously selected symbols'
-    )
+    # parser.add_argument('--portfolio',
+        # choices=['futures_busd', 'spot_usdt'],
+        # help='Load data for a list of previously selected symbols'
+    # )
     
     parser.add_argument('--interval',
         choices=['1d','1m'],
@@ -110,7 +113,6 @@ if __name__== '__main__':
         # 1 DAY - SPOT_MARGIN
         python3 obtain-data-klines.py \
         --createdb \
-        --portfolio spot_usdt \
         --interval 1d \
         --quotedasset usdt \
         --markettype spot_margin \
@@ -120,7 +122,6 @@ if __name__== '__main__':
             # 1 DAY - SPOT_MARGIN
             python3 obtain-data-klines.py \
             --updatedb \
-            --portfolio spot_usdt \
             --interval 1d \
             --quotedasset usdt \
             --markettype spot_margin \
@@ -131,7 +132,6 @@ if __name__== '__main__':
         # 1 DAY - FUTURES_STABLE
         python3 obtain-data-klines.py \
         --createdb \
-        --portfolio futures_busd \
         --interval 1d \
         --quotedasset busd \
         --markettype futures_stable \
@@ -141,8 +141,25 @@ if __name__== '__main__':
             # 1 DAY - FUTURES_STABLE
             python3 obtain-data-klines.py \
             --updatedb \
-            --portfolio futures_busd \
             --interval 1d \
+            --quotedasset busd \
+            --markettype futures_stable \
+            --streamtype continuous_klines
+        
+        ###################################
+        # 1 MINUTE - FUTURES_STABLE
+        python3 obtain-data-klines.py \
+        --createdb \
+        --interval 1m \
+        --quotedasset busd \
+        --markettype futures_stable \
+        --streamtype continuous_klines
+        
+            ###################################
+            # 1 MINUTE - FUTURES_STABLE
+            python3 obtain-data-klines.py \
+            --updatedb \
+            --interval 1m \
             --quotedasset busd \
             --markettype futures_stable \
             --streamtype continuous_klines

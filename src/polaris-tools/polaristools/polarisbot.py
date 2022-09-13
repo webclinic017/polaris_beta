@@ -40,14 +40,7 @@ class PolarisBot:
         # else:
             # print('No credentials passed yet')
 
-    def createDatabaseKlines(
-        self,
-        symbols:list,
-        interval:str,
-        quoted_asset:str,
-        stream_type:str,
-        market_type:str,
-        ):
+    def createDatabaseKlines(self,symbols:list,interval:str,quoted_asset:str,stream_type:str,market_type:str,):
         logger = logger_func(logger_name=__name__, filename='file.log')
         testConn = self.mongo.pingServer()
         if testConn == 400:
@@ -106,14 +99,7 @@ class PolarisBot:
         logger.warning('New Database created successfully')
         print('\n')
 
-    def updateDatabaseKlines(
-        self,
-        symbols:list,
-        interval:str,
-        quoted_asset:str,
-        stream_type:str,
-        market_type:str,
-        ):
+    def updateDatabaseKlines(self,symbols:list,interval:str,quoted_asset:str,stream_type:str,market_type:str,):
         logger = logger_func(logger_name=__name__, filename='file.log')
         testConn = self.mongo.pingServer()
         if testConn == 400:
@@ -335,7 +321,7 @@ class PolarisBot:
                 dataframe = pickle.load(df_bin)
                 return dataframe
         except:
-            print("Requested file does not exists yet\n")
+            print("Requested file does not exists yet")
 
     def checkWallet(self, market_type):
         return self.binance.dailyAccountSnapshot(type=market_type)
