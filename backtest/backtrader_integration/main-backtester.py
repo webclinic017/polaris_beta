@@ -10,23 +10,24 @@ from strategies import mystrategies
 
 class PandasData_Extend(bt.feeds.PandasData):
     lines = (
-        'open',
-        'high',
-        'low',
-        'close',
-        'volume',
+        'Open',
+        'High',
+        'Low',
+        'Close',
+        'Volume',
     )
     params = (
         ('open_time', None),
-        ('open', 0),
-        ('high', 1),
-        ('low', 2),
-        ('close', 3),
-        ('volume', 4),
+        ('Open', -1),
+        ('High', -1),
+        ('Low', -1),
+        ('Close', -1),
+        ('Volume', -1),
     )
 
+
 def add_data_to_cerebro(sample, symbol:str, timeframe:str):
-    df = read_pickle(f"/home/llagask/Trading/polaris_beta/datasets/df_klines_{symbol.upper()}_{timeframe}.pckl")
+    df = read_pickle(f"/home/llagask/Trading/polaris_beta/datasets/df_continuous_klines_{symbol.upper()}_{timeframe}.pckl")
     if isinstance(sample, dict):
         df = df.loc[sample.get('start') : sample.get('end')]
     elif isinstance(sample, int):
@@ -78,6 +79,7 @@ def run_cerebro(args=None):
         'momentum':mystrategies.Momentum,
         'emacrosstriple':mystrategies.EmaCrossTriple,
         'aroon_plus_ma':mystrategies.AroonPlusMa,
+        'simple':mystrategies.Simple,
     }
     plot_args = dict(style=arg.plot_style)
     strat_params = arg.strat_params
@@ -282,7 +284,7 @@ def parse_inputs(pargs=None):
     parser.add_argument('--logic',
         action='store',
         type=str,
-        choices=['momentum','emacrosstriple','aroon_plus_ma'],
+        choices=['momentum','emacrosstriple','aroon_plus_ma','simple'],
         help='Add a strategy for test.'
     )
     parser.add_argument('--strat_params',

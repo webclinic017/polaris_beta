@@ -234,7 +234,8 @@ class PolarisBot:
                 df['simple_returns'] = df.close.pct_change(lookback)
             elif indicator=='log_returns':
                 lookback = indicators[indicator].get('lookback', 1)
-                df['log_returns'] = np.log(1 + df.close.pct_change(lookback))
+                colname = f"log_returns_{lookback}"
+                df[colname] = np.log(1 + df.close.pct_change(lookback))
             elif indicator=='talib_EMA':
                 for period in indicators[indicator]:
                     colname = f'talib_EMA_{period}'

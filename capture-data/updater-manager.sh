@@ -1,13 +1,12 @@
 #!/bin/bash
 
-# e.g:
-# updater-manager.sh 1d 
-
-while getopts i:m: flag
+while getopts i:m:q:s: flag
 do
     case "${flag}" in
         i) interval=${OPTARG};;
         m) markettype=${OPTARG};;
+        q) quotedasset=${OPTARG};;
+        s) streamtype=${OPTARG};;
     esac
 done
 
@@ -15,13 +14,15 @@ done
 cd /home/llagask/Trading/polaris_beta/capture-data
 
 # activate virtual environment. DIFFERENT IN EVERY MACHINE, UNLESS USE DOCKER, IN THIS CASE IS UNNECESSARY.
-source ../.venv-p39/bin/activate
+source ../.venv/bin/activate
 
-# For testing purpose.
-# python3 obtain-data-klines.py --updatedb --markettype spot_margin --interval 15m --symbol BTCUSDT --symbol ETHUSDT --streamtype klines 2>> errors.txt
-
-python3 obtain-data-klines.py --updatedb --markettype spot_margin --interval $interval --portfoliosymbols --streamtype klines 2>> errors.txt
+python3 obtain-data-klines.py \
+--updatedb \
+--interval $interval \
+--markettype $markettype \
+--quotedasset $quotedasset \
+--streamtype $streamtype \
+2>> /home/llagask/Trading/polaris_beta/capture-data/errors.txt
 
 # deactivate virtual environment
 deactivate
-
